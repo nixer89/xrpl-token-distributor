@@ -61,7 +61,7 @@ process.env.TOKEN_AMOUNT
 process.env.SENDER_SECRET
 
 ```
-When all the above environment variables are set, execute the following to
+When all the above environment variables are set, execute the following commands:
 
 1. run 'node .\build\trustlineToCsv.js' -> this will generate the fiel defined with 'INPUT_CSV_FILE'
 2. the script will tell you the number of trustlines and the amount of your tokens to be sent
