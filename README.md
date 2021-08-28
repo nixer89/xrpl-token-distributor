@@ -61,7 +61,7 @@ default: 'validated' -> recently validated ledger
 info: xrp ledger version in which the trustlines shall be checked.
 
 -> to find the correct ledger version (if you have a "deadline for setting the trustline"):
-1. visit [xrpintel](https://xrpintel.com/ledgers) 
+1. visit https://xrpintel.com/ledgers
 2. top right, click on "Ledger Timestamp"
 3. choose your timestamp. (this defines the timestamp when the trustlines will be read from)
 4. find the ledger version for that time stamp on the main view (also called 'ledger_index')
