@@ -1,7 +1,7 @@
 /**
  * ###### NOTICE ######
  * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
- * original version: https://github.com/nixer89/xrpl-token-distributor
+ * original version: https://github.com/ripple/xrp-batch-payout
  */
 
 //run as nodejs

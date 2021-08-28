@@ -1,6 +1,6 @@
 {
   "name": "xrpl-token-distributor",
-  "version": "1.2.1",
+  "version": "0.1.0",
   "description": "A library and command-line tool for batched, reliable payouts with XRP.",
   "homepage": "https://github.com/nixer89/xrpl-token-distributor#readme",
   "bugs": {
@@ -25,21 +25,21 @@
     "buildWatch": "rm -rf build && tsc --watch --project ."
   },
   "dependencies": {
-    "chalk": "^4.1.0",
+    "chalk": "^4.1.2",
     "https-proxy-agent": "^5.0.0",
     "papaparse": "^5.3.0",
     "ripple-lib": "^1.10.0",
-    "tslog": "^3.1.0",
+    "tslog": "^3.2.1",
     "xpring-common-js": "^6.2.2",
     "xpring-js": "^5.4.0-beta.0",
     "zod": "^1.11.11"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.19",
-    "@types/google-protobuf": "^3.7.3",
-    "@types/node": "^14.14.22",
-    "@types/node-fetch": "^2.5.8",
-    "@types/papaparse": "^5.2.5",
+    "@types/chai": "^4.2.21",
+    "@types/google-protobuf": "^3.15.5",
+    "@types/node": "^14.17.12",
+    "@types/node-fetch": "^2.5.12",
+    "@types/papaparse": "^5.2.6",
     "chai": "^4.2.0",
     "node-fetch": "^2.6.1",
     "ts-node": "^9.0.0",
