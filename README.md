@@ -23,24 +23,34 @@ I have modified this tool to send issued tokens on the XRPL and adapted it to th
 ### As a Node-Js Tool
 
 ```
-Specific environment variables have to be set:
+Specific environment variables have to be set: (if variable is not set, defaults apply!)
 
 // Retry limit for reliable send
-process.env.RETRY_LIMIT (defaults to 10)
+variable: RETRY_LIMIT
+default: 10
+
 //input csv file
-process.env.INPUT_CSV_FILE (defaults to './test/input.csv')
+variable: INPUT_CSV_FILE
+default: './test/input.csv'
 
 //output csv file
-process.env.OUTPUT_CSV_FILE (defaults to './test/output.csv')
+variable: OUTPUT_CSV_FILE
+default: './test/output.csv'
 
 //local js file of already processed trustline payments
-process.env.ALREADY_SENT_ACCOUNT_FILE (defaults to './test/alreadyDistributedAccounts.js')
+variable: ALREADY_SENT_ACCOUNT_FILE
+default: './test/alreadyDistributedAccounts.js'
 
 //xrpl network to run the script on
-process.env.XRPL_NETWORK (values: 'mainnet' or 'testnet' -> defaults to 'testnet')
+variable: XRPL_NETWORK
+possible values: 'mainnet' or 'testnet'
+default: 'testnet'
+
 
 //xrp ledger version in which the trustlines shall be checked.
-process.env.XRP_LEDGER_VERSION (any number as string, defaults to 'validated' -> recently validated ledger)
+variable: XRP_LEDGER_VERSION
+possible values: any number as string,
+default: 'validated' -> recently validated ledger
 
 -> to find the correct ledger version (if you have a "deadline for setting the trustline):
 1. visit https://xrpintel.com/ledgers
