@@ -1,0 +1,54 @@
+{
+  "name": "xrp-batch-payout",
+  "version": "1.2.1",
+  "description": "A library and command-line tool for batched, reliable payouts with XRP.",
+  "homepage": "https://github.com/ripple/xrp-batch-payout#readme",
+  "bugs": {
+    "url": "https://github.com/ripple/xrp-batch-payout/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ripple/xrp-batch-payout.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Dino Rodriguez modified by nixer89",
+  "main": "build/src/index.js",
+  "types": "build/index.d.ts",
+  "bin": "./bin/index.js",
+  "files": [
+    "src/*",
+    "test/*",
+    "build/*"
+  ],
+  "scripts": {
+    "build": "tsc --project .",
+    "buildWatch": "rm -rf build && tsc --watch --project ."
+  },
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "chokidar": "^3.5.2",
+    "https-proxy-agent": "^5.0.0",
+    "papaparse": "^5.3.0",
+    "tslog": "^3.1.0",
+    "xpring-common-js": "^6.2.2",
+    "xpring-js": "^5.4.0-beta.0",
+    "zod": "^1.11.11"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.19",
+    "@types/google-protobuf": "^3.7.3",
+    "@types/node": "^14.14.22",
+    "@types/node-fetch": "^2.5.8",
+    "@types/papaparse": "^5.2.5",
+    "chai": "^4.2.0",
+    "chokidar-cli": "^2.1.0",
+    "node-fetch": "^2.6.1",
+    "ts-node": "^9.0.0",
+    "typescript": "^3.9.10"
+  },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6",
+    "yarn": "please use npm"
+  }
+}
