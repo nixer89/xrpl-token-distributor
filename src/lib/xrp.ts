@@ -1,6 +1,7 @@
 /**
  * ###### NOTICE ######
- * This file has been modified from its original version to meet the requirements of mg.social
+ * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
+ * original version: https://github.com/ripple/xrp-batch-payout
  */
 
 // XRP logic - connect to XRPL and reliably send a payment
@@ -275,16 +276,18 @@ export async function reliableBatchPayment(
   xrpClient: XrpClient,
   issuedCurrencyClient: IssuedCurrencyClient,
   numRetries: number,
+  successAccounts: string[]
 ): Promise<any[]> {
   let success:number = 0;
   let skip:number = 0;
+
   for (const [index, txInput] of txInputs.entries()) {
 
     log.info('Checking existing trustline')
 
     const trustlineExists = await checkTrustLine(issuedCurrencyClient, txInput);
 
-    if(trustlineExists) {
+    if(trustlineExists && !successAccounts.includes(txInput.address)) {
       // Submit payment
       log.info('')
       log.info(
@@ -314,6 +317,7 @@ export async function reliableBatchPayment(
       log.info(black(`  -> Tx hash: ${txHash}`))
 
       success++;
+      successAccounts.push(txInput.address);
 
       // Transform transaction input to output
       const txOutput = {
@@ -339,5 +343,5 @@ export async function reliableBatchPayment(
     }
   }
 
-  return [success, skip];
+  return [success, skip, successAccounts];
 }

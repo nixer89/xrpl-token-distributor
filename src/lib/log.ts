@@ -1,3 +1,9 @@
+/**
+ * ###### NOTICE ######
+ * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
+ * original version: https://github.com/ripple/xrp-batch-payout
+ */
+
 // Logger - less verbose for CLI UX
 import chalk from 'chalk'
 import { Logger } from 'tslog'

@@ -1,8 +1,8 @@
 /**
  * ###### NOTICE ######
- * This file has been modified from its original version to meet the requirements of mg.social
+ * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
+ * original version: https://github.com/ripple/xrp-batch-payout
  */
-
 // XRP payout script
 import fs from 'fs';
 import { ZodError } from 'zod';
@@ -96,6 +96,26 @@ export default async function payout(): Promise<void> {
       black(`  -> RippleD node web gRPC endpoint: ${senderInput.grpcUrl}`),
     )
 
+    //read existing sent accounts
+    let alreadySentToAccounts: string[] = [];
+    console.log("loading already distributed accounts from FS");
+    try {
+        if(fs.existsSync(config.ALREADY_SENT_ACCOUNT_FILE)) {
+            let alreadySentTo:any = JSON.parse(fs.readFileSync(config.ALREADY_SENT_ACCOUNT_FILE).toString());
+            //console.log(JSON.stringify(bithompNames));
+            if(alreadySentTo && alreadySentTo.accounts) {
+                alreadySentToAccounts = alreadySentTo.accounts;
+
+                console.log("loaded " + alreadySentToAccounts.length + " accounts from file system");
+            }
+        } else {
+            console.log("already distributed to file does not exist yet.")
+        }
+    } catch(err) {
+        console.log("error reading already distributed accounts from FS");
+        console.log(err);
+    }
+
     // Reliably send XRP to accounts specified in transaction inputs
     const txOutputWriteStream = fs.createWriteStream(senderInput.outputCsv)
     let sentSkipped:any[] = await reliableBatchPayment(
@@ -105,7 +125,8 @@ export default async function payout(): Promise<void> {
       wallet,
       xrpNetworkClient,
       issuedCurrencyClient,
-      parseInt(config.RETRY_LIMIT)
+      parseInt(config.RETRY_LIMIT),
+      alreadySentToAccounts
     )
 
     log.info('')
@@ -114,6 +135,14 @@ export default async function payout(): Promise<void> {
         `Batch payout complete succeeded. Reliably sent ${sentSkipped[0]} ${config.CURRENCY_CODE} payments and skipped ${sentSkipped[1]} due to no trust line.`,
       ),
     )
+
+    //write back new distributed accounts accounts file
+    let newDistributedAccounts = {
+      accounts: sentSkipped[2]
+    }
+
+    fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+
   } catch (err) {
     if (err instanceof ZodError) {
       log.error(err.errors)

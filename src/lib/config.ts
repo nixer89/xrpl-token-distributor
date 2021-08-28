@@ -1,8 +1,8 @@
 /**
  * ###### NOTICE ######
- * This file has been modified from its original version to meet the requirements of mg.social
+ * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
+ * original version: https://github.com/ripple/xrp-batch-payout
  */
-
 // Application configuration - defaults are recommended
 import { XrplNetwork } from 'xpring-js'
 
@@ -23,7 +23,7 @@ export const RETRY_LIMIT = process.env.RETRY_LIMIT || '10'
 //file properties
 export const INPUT_CSV_FILE = process.env.INPUT_CSV_FILE || './input.csv';
 export const OUTPUT_CSV_FILE = process.env.OUTPUT_CSV_FILE || './output.csv';
-export const ALREADY_SENT_ACCOUNT = process.env.ALREADY_SENT_ACCOUNT || './'
+export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE || './'
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK === 'mainnet' ? XrplNetwork.Main : XrplNetwork.Test || XrplNetwork.Test;

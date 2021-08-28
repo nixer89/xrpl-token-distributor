@@ -1,6 +1,7 @@
 /**
  * ###### NOTICE ######
- * This file has been modified from its original version to meet the requirements of mg.social
+ * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
+ * original version: https://github.com/ripple/xrp-batch-payout
  */
 
 import fs from 'fs'
