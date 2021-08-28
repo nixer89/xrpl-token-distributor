@@ -1,19 +1,19 @@
-# xrp-batch-payout
+# xrpl-token-distributor
 
-A library and command-line tool for batched, reliable payouts with XRP.
+A library and command-line tool for reliable xrpl token distribution
 
 ## Getting Started
 
 ### NPM (recommended)
 
-1. `npm install xrp-batch-payout -g` (as a command-line tool)
-1. OR `npm install xrp-batch-payout` (as a library for an existing project)
-1. `xrp-batch-payout` (run command-line tool)
+1. `npm install xrpl-token-distributor -g` (as a command-line tool)
+1. OR `npm install xrpl-token-distributor` (as a library for an existing project)
+1. `xrpl-token-distributor` (run command-line tool)
 
 ### Git (for development)
 
-1. `git clone https://github.com/ripple/xrp-batch-payout.git`
-2. `cd xrp-batch-payout`
+1. `git clone https://github.com/nixer89/xrpl-token-distributor.git`
+2. `cd xrpl-token-distributor`
 3. `npm install`
 4. `npm run build`
 5. `node bin/index.js` (run command-line tool)
@@ -23,7 +23,7 @@ A library and command-line tool for batched, reliable payouts with XRP.
 ### As a Command-Line Tool
 
 ```
-Usage: xrp-batch-payout [options]
+Usage: xrpl-token-distributor [options]
 
 Options:
   -V, --version      output the version number
@@ -32,7 +32,7 @@ Options:
 
 Prompt overrides help:
   inputCsv - The input CSV path. Should point to a file that contains the receiver's XRP details.
-  outputCsv - The output CSV path. Will be generated after xrp-batch-payout is complete.
+  outputCsv - The output CSV path. Will be generated after xrpl-token-distributor is complete.
   network - The XRPL network. Either 'testnet' or 'mainnet'.
   grpcUrl - The web gRPC endpoint for the rippleD node.
   usdToXrpRate - The price of 1 XRP in USD.
@@ -73,7 +73,7 @@ All of these functions are exported via `src/index.ts`, and accessible in via Ja
 
 ## Documentation
 
-To see library/code documentation, run the following from within the `xrp-batch-payout` repo:
+To see library/code documentation, run the following from within the `xrpl-token-distributor` repo:
 
 1. `npm run generateDocs`
 2. Open `docs/index.html` in a browser.

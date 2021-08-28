@@ -1,7 +1,7 @@
 /**
  * ###### NOTICE ######
  * This file has been modified from its original version to meet the requirements for a token distribution on the XRPL
- * original version: https://github.com/ripple/xrp-batch-payout
+ * original version: https://github.com/nixer89/xrpl-token-distributor
  */
 // Application configuration - defaults are recommended
 import { XrplNetwork } from 'xpring-js'
@@ -27,6 +27,7 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK === 'mainnet' ? XrplNetwork.Main : XrplNetwork.Test || XrplNetwork.Test;
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 
 //issuer properties
 //export const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rHP4bHzghBdzskqcaPciL5WRGkHosB5zYx'; // <--- real MGS!
@@ -34,5 +35,5 @@ export const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rHBPZ4bdh3ZS23g88AR
 
 //export const CURRENCY_CODE = process.env.CURRENCY_CODE || 'ABC';
 export const CURRENCY_CODE = process.env.CURRENCY_CODE || 'ABC';
-
+export const TOKEN_AMOUNT = process.env.TOKEN_AMOUNT || 0;
 export const SENDER_SECRET = process.env.SENDER_SECRET || 'shTAjRHoxanFFx6TiPKEVJYVeXRqj';
