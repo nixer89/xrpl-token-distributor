@@ -95,3 +95,6 @@ I am not liable for any misconfigured, failed or unintended payments.
 In case of support, questions or feature requests, please contact me on twitter:
 [@nixerFFM](https://twitter.com/nixerFFM)
 
+Donations are always welcome!
+XRP Address: r9N4v3cWxfh4x6yUNjxNy3DbWUgbzMBLdk
+
