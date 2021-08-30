@@ -19,9 +19,9 @@
     },
 
     // Source Maps & Declaration Files
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
 
     // Strict Mode
     "strict": true,

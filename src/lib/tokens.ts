@@ -271,6 +271,10 @@ export async function checkPayment(
  * @param numRetries - The amount of times to retry a pending payment.
  */
 // eslint-disable-next-line max-params -- Keep regular parameters for a simpler type signature.
+
+let success:number = 0;
+let skip:number = 0;
+
 export async function reliableBatchPayment(
   txInputs: TxInput[],
   txOutputWriteStream: fs.WriteStream,
@@ -281,10 +285,11 @@ export async function reliableBatchPayment(
   numRetries: number,
   successAccounts: string[]
 ): Promise<void> {
-  let success:number = 0;
-  let skip:number = 0;
+
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
+
+  let transactionChecks:any[] = [];
 
   for (const [index, txInput] of txInputs.entries()) {
 
@@ -319,51 +324,10 @@ export async function reliableBatchPayment(
           log.info('Submitted payment transaction.')
           log.info(black(`  -> Tx hash: ${txHash}`))
 
-          // Only continue if the payment was successful, otherwise throw an error
-          await checkPayment(xrpClient, txHash, numRetries, txInput.address);
-          log.info(
-            green('Transaction successfully validated. Your money has been sent.'),
-          )
-          log.info(black(`  -> Tx hash: ${txHash}`))
-
-          success++;
-          successAccounts.push(txInput.address);
-
-          // Transform transaction input to output
-          const txOutput = {
-            ...txInput,
-            transactionHash: txHash
-          }
-
-          // Write transaction output to CSV, only use headers on first input
-          const csvData = parseFromObjectToCsv(
-            txOutputWriteStream,
-            txOutputSchema,
-            txOutput,
-            index === 0,
-          )
-          log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
-          log.debug(black(`  -> ${csvData}`))
-          log.info(green('Transaction successfully validated and recorded.'))
+          transactionChecks.push(handleSubmittedPayment(txOutputWriteStream, txOutputSchema, xrpClient, numRetries, txInput, txHash, index, successAccounts));
+    
         } catch(err) {
           console.log(JSON.stringify(err));
-        }
-
-        if(index > txInputs.length) {
-
-          log.info('')
-          log.info(
-            green(
-              `Batch payout complete succeeded. Reliably sent ${success} ${config.CURRENCY_CODE} payments and skipped ${skip} due to no trust line.`,
-            ),
-          )
-
-          //write back new distributed accounts accounts file
-          let newDistributedAccounts = {
-            accounts: successAccounts
-          }
-
-          fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
         }
       }, 100);
     } else {
@@ -373,6 +337,60 @@ export async function reliableBatchPayment(
       fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE\n")
     }
   }
+
+  transactionChecks = await Promise.all(transactionChecks);
+
+  log.info('')
+  log.info(
+    green(
+      `Batch payout complete succeeded. Reliably sent ${success} ${config.CURRENCY_CODE} payments and skipped ${skip} due to no trust line.`,
+    ),
+  )
+
+  //write back new distributed accounts accounts file
+  let newDistributedAccounts = {
+    accounts: successAccounts
+  }
+
+  fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+}
+
+async function handleSubmittedPayment(
+  txOutputWriteStream: fs.WriteStream,
+  txOutputSchema: z.Schema<TxOutput>,
+  xrpClient: XrpClient,
+  numRetries: number,
+  txInput: TxInput,
+  txHash:string,
+  index: number,
+  successAccounts: string[]
+): Promise<void>{
+  // Only continue if the payment was successful, otherwise throw an error
+  await checkPayment(xrpClient, txHash, numRetries, txInput.address);
+  log.info(
+    green('Transaction successfully validated. Your money has been sent.'),
+  )
+  log.info(black(`  -> Tx hash: ${txHash}`))
+
+  success++;
+  successAccounts.push(txInput.address);
+
+  // Transform transaction input to output
+  const txOutput = {
+    ...txInput,
+    transactionHash: txHash
+  }
+
+  // Write transaction output to CSV, only use headers on first input
+  const csvData = parseFromObjectToCsv(
+    txOutputWriteStream,
+    txOutputSchema,
+    txOutput,
+    index === 0,
+  )
+  log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
+  log.debug(black(`  -> ${csvData}`))
+  log.info(green('Transaction successfully validated and recorded.'))
 }
 
 function sleep(ms: number) {
