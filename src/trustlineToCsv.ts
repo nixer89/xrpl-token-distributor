@@ -57,19 +57,37 @@ async function readAndConvertToCsv() {
 
     let newTrustlineAccounts:string[] = [];
 
+    let distributorAddress:string = xrplApi.deriveAddress(xrplApi.deriveKeypair(config.DISTRIBUTOR_SECRET).publicKey)
+    console.log("distributor: " + distributorAddress)
+
+    let distributorBalance = await xrplApi.getBalances(distributorAddress, {counterparty: config.ISSUER_ADDRESS, currency: config.CURRENCY_CODE});
+
     trustlines.forEach(line => {
-        if(!alreadySentToAccounts.includes(line.specification.counterparty) && !newTrustlineAccounts.includes(line.specification.counterparty) && line.specification.currency === config.CURRENCY_CODE)
+        if(!alreadySentToAccounts.includes(line.specification.counterparty) && !newTrustlineAccounts.includes(line.specification.counterparty) && distributorAddress != line.specification.counterparty && line.specification.currency === config.CURRENCY_CODE)
             newTrustlineAccounts.push(line.specification.counterparty);
     });
 
     console.log("trustlines: " + newTrustlineAccounts.length);
     
-    fs.writeFileSync(config.INPUT_CSV_FILE, "address,amount")
+    fs.writeFileSync(config.INPUT_CSV_FILE, "address,amount\n")
     newTrustlineAccounts.forEach(account => {
         fs.appendFileSync(config.INPUT_CSV_FILE, account + "," + config.TOKEN_AMOUNT+"\n")
     });
 
     console.log("total amount of tokens to be sent: " + (newTrustlineAccounts.length * parseInt(config.TOKEN_AMOUNT.toString())));
+
+    for(let i = 0; i < distributorBalance.length; i++) {
+        if(distributorBalance[i].currency == config.CURRENCY_CODE && parseFloat(distributorBalance[i].value) < newTrustlineAccounts.length * parseInt(config.TOKEN_AMOUNT.toString())) {
+            console.log("\n\nBALANCE OF DISTRIBUTOR ACCOUNT IS NOT HIGH ENOUGH TO DISTRIBUTE ALL TOKENS!")
+            console.log("total amount of tokens to be sent: " + (newTrustlineAccounts.length * parseInt(config.TOKEN_AMOUNT.toString())));
+            console.log("distributor balance: " + distributorBalance[i].value)
+
+            fs.rmSync(config.INPUT_CSV_FILE);
+            console.log("\n\nINPUT_CSV_FILE HAS BEEN REMOVED!\n\n")
+            
+        }
+            
+    }
 
     process.exit(0);
 }

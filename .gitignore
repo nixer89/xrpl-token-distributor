@@ -1,6 +1,7 @@
 build/
 docs/
 node_modules/
+test/
 
 *.code-workspace
 .nyc_output/

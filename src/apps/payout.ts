@@ -19,7 +19,7 @@ import {
   connectToLedgerToken,
   generateWallet,
   reliableBatchPayment,
-} from '../lib/xrp'
+} from '../lib/tokens'
 
 /**
  * Run the XRP payout script.
@@ -36,7 +36,7 @@ export default async function payout(): Promise<void> {
       network: config.XRPL_NETWORK,
       grpcUrl: 'mainnet' === config.XRPL_NETWORK ? config.WebGrpcEndpoint.Main : config.WebGrpcEndpoint.Test,
       maxFee: 0.000012,
-      secret: config.SENDER_SECRET,
+      secret: config.DISTRIBUTOR_SECRET,
       confirmed: true
     }
 
@@ -118,7 +118,7 @@ export default async function payout(): Promise<void> {
 
     // Reliably send XRP to accounts specified in transaction inputs
     const txOutputWriteStream = fs.createWriteStream(senderInput.outputCsv)
-    let sentSkipped:any[] = await reliableBatchPayment(
+    await reliableBatchPayment(
       txInputs,
       txOutputWriteStream,
       txOutputSchema,
@@ -128,20 +128,6 @@ export default async function payout(): Promise<void> {
       parseInt(config.RETRY_LIMIT),
       alreadySentToAccounts
     )
-
-    log.info('')
-    log.info(
-      green(
-        `Batch payout complete succeeded. Reliably sent ${sentSkipped[0]} ${config.CURRENCY_CODE} payments and skipped ${sentSkipped[1]} due to no trust line.`,
-      ),
-    )
-
-    //write back new distributed accounts accounts file
-    let newDistributedAccounts = {
-      accounts: sentSkipped[2]
-    }
-
-    fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
 
   } catch (err) {
     if (err instanceof ZodError) {

@@ -54,7 +54,6 @@ export const txInputSchema = z.object({
     .refine((val) => XrpUtils.isValidClassicAddress(val), {
       message: '`address` must be a valid XRPL classic address.',
     }),
-  destinationTag: z.union([z.number().nonnegative().int(), z.null()]),
   amount: z.number().positive()
 })
 export type TxInput = z.infer<typeof txInputSchema>
