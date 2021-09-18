@@ -288,84 +288,101 @@ export async function reliableBatchPayment(
 
   for (const [index, txInput] of txInputs.entries()) {
 
-    log.info('Checking existing trustline')
+    log.info('Checking if account exists')
 
-    const trustlineExists = await checkTrustLine(issuedCurrencyClient, txInput);
+    if(!successAccounts.includes(txInput.address)) {
 
-    if(trustlineExists && !successAccounts.includes(txInput.address)) {
+      let accountExists = await xrpClient.accountExists(txInput.address);
 
-      try {
-        // Submit payment
-        log.info('')
-        log.info(
-          `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
-        )
-        log.info(black(`  -> Receiver classic address: ${txInput.address}`))
-        log.info(
-          black(
-            `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
-          ),
-        )
+      if(!accountExists) {
 
-        const txHash = await submitPayment(
-          senderWallet,
-          issuedCurrencyClient,
-          txInput
-        )
-        log.info('Submitted payment transaction.')
-        log.info(black(`  -> Tx hash: ${txHash}`))
+        const trustlineExists = await checkTrustLine(issuedCurrencyClient, txInput);
 
-        // Only continue if the payment was successful, otherwise throw an error
-        await checkPayment(xrpClient, txHash, numRetries, txInput.address);
-        log.info(
-          green('Transaction successfully validated. Your money has been sent.'),
-        )
-        log.info(black(`  -> Tx hash: ${txHash}`))
+        log.info('Checking existing trustline')
 
-        success++;
-        successAccounts.push(txInput.address);
+        if(trustlineExists) {
 
-        // Transform transaction input to output
-        const txOutput = {
-          ...txInput,
-          transactionHash: txHash
+          try {
+            // Submit payment
+            log.info('')
+            log.info(
+              `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
+            )
+            log.info(black(`  -> Receiver classic address: ${txInput.address}`))
+            log.info(
+              black(
+                `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
+              ),
+            )
+
+            const txHash = await submitPayment(
+              senderWallet,
+              issuedCurrencyClient,
+              txInput
+            )
+            log.info('Submitted payment transaction.')
+            log.info(black(`  -> Tx hash: ${txHash}`))
+
+            // Only continue if the payment was successful, otherwise throw an error
+            await checkPayment(xrpClient, txHash, numRetries, txInput.address);
+            log.info(
+              green('Transaction successfully validated. Your money has been sent.'),
+            )
+            log.info(black(`  -> Tx hash: ${txHash}`))
+
+            success++;
+            successAccounts.push(txInput.address);
+
+            // Transform transaction input to output
+            const txOutput = {
+              ...txInput,
+              transactionHash: txHash
+            }
+
+            // Write transaction output to CSV, only use headers on first input
+            const csvData = parseFromObjectToCsv(
+              txOutputWriteStream,
+              txOutputSchema,
+              txOutput,
+              index === 0,
+            )
+            log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
+            log.debug(black(`  -> ${csvData}`))
+            log.info(green('Transaction successfully validated and recorded.'))
+          } catch(err) {
+            console.log(JSON.stringify(err));
+          }
+
+          if(index > txInputs.length) {
+
+            log.info('')
+            log.info(
+              green(
+                `Batch payout complete succeeded. Reliably sent ${success} ${config.CURRENCY_CODE} payments and skipped ${skip} due to no trust line.`,
+              ),
+            )
+
+            //write back new distributed accounts accounts file
+            let newDistributedAccounts = {
+              accounts: successAccounts
+            }
+
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+          }
+        } else {
+          log.info(red(`No Trust Line for: ${txInput.address}`));
+          log.info(red(`No ${config.CURRENCY_CODE} tokens were sent to: ${txInput.address}`));
+          skip++;
+          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE\n")
         }
-
-        // Write transaction output to CSV, only use headers on first input
-        const csvData = parseFromObjectToCsv(
-          txOutputWriteStream,
-          txOutputSchema,
-          txOutput,
-          index === 0,
-        )
-        log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
-        log.debug(black(`  -> ${csvData}`))
-        log.info(green('Transaction successfully validated and recorded.'))
-      } catch(err) {
-        console.log(JSON.stringify(err));
-      }
-
-      if(index > txInputs.length) {
-
-        log.info('')
-        log.info(
-          green(
-            `Batch payout complete succeeded. Reliably sent ${success} ${config.CURRENCY_CODE} payments and skipped ${skip} due to no trust line.`,
-          ),
-        )
-
-        //write back new distributed accounts accounts file
-        let newDistributedAccounts = {
-          accounts: successAccounts
-        }
-
-        fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+      } else {
+        log.info(red(`Account does not exist: ${txInput.address}`));
+        log.info(red(`No ${config.CURRENCY_CODE} tokens were sent to: ${txInput.address}`));
+        skip++;
+        fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", ACCOUNT DELETED\n")
       }
     } else {
-      log.info(red(`No Trust Line for: ${txInput.address}`));
-      log.info(red(`No ${config.CURRENCY_CODE} tokens were sent to: ${txInput.address}`));
-      skip++;
-      fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE\n")
+      log.info(red(`Skipped: ${txInput.address} - already processed`));
     }
-  }
+  } 
 }
