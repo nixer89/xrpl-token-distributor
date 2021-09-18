@@ -292,7 +292,12 @@ export async function reliableBatchPayment(
 
     if(!successAccounts.includes(txInput.address)) {
 
-      let accountExists = await xrpClient.accountExists(txInput.address);
+      const destinationXAddress = XrpUtils.encodeXAddress(
+        txInput.address,
+        undefined,
+      ) as string
+
+      let accountExists = await xrpClient.accountExists(destinationXAddress);
 
       if(accountExists) {
 
