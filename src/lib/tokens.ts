@@ -294,7 +294,7 @@ export async function reliableBatchPayment(
 
       let accountExists = await xrpClient.accountExists(txInput.address);
 
-      if(!accountExists) {
+      if(accountExists) {
 
         const trustlineExists = await checkTrustLine(issuedCurrencyClient, txInput);
 
