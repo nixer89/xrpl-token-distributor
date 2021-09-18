@@ -15,7 +15,7 @@ import {
   Wallet,
   TransactionStatus,
 } from 'xpring-js'
-import { IssuedCurrencyClient, TrustLine, XrpErrorType } from 'xpring-js/build/XRP'
+import { IssuedCurrencyClient, TrustLine, XrpError, XrpErrorType } from 'xpring-js/build/XRP'
 import * as z from 'zod'
 
 import  * as config from './config'
@@ -49,13 +49,13 @@ export async function connectToLedger(
     balance = parseFloat(
       XrpUtils.dropsToXrp((await xrpClient.getBalance(xAddress)).valueOf()),
     )
-  } catch (err:any) {
+  } catch (err) {
     // Rethrow xpring-js errors in favor of something more helpful
-    if (err.errorType === XrpErrorType.XAddressRequired) {
+    if (err instanceof XrpError && err.errorType === XrpErrorType.XAddressRequired) {
       throw Error(
         `Invalid classic address. Could not connect to XRPL ${network}.`,
       )
-    } else if (err.message === 'Http response at 400 or 500 level' || err.message === 'Unknown Content-type received.') {
+    } else if (err instanceof XrpError && (err.message === 'Http response at 400 or 500 level' || err.message === 'Unknown Content-type received.')) {
       throw Error(
         `Failed to connect ${grpcUrl}. Is the the right ${network} endpoint?`,
       )
@@ -82,13 +82,13 @@ export async function connectToLedgerToken(
     let trustlines = await issuedClient.getTrustLines(xAddress);
     console.log("trustline length: " + trustlines != null ? trustlines.length : -1);
 
-  } catch (err:any) {
+  } catch (err) {
     // Rethrow xpring-js errors in favor of something more helpful
-    if (err.errorType === XrpErrorType.XAddressRequired) {
+    if (err instanceof XrpError && err.errorType === XrpErrorType.XAddressRequired) {
       throw Error(
         `Invalid classic address. Could not connect to XRPL ${network}.`,
       )
-    } else if (err.message === 'Http response at 400 or 500 level' || err.message === 'Unknown Content-type received.') {
+    } else if (err instanceof XrpError && (err.message === 'Http response at 400 or 500 level' || err.message === 'Unknown Content-type received.')) {
       throw Error(
         `Failed to connect ${grpcUrl}. Is the the right ${network} endpoint?`,
       )
