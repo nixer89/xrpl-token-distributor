@@ -351,6 +351,9 @@ export async function reliableBatchPayment(
               txOutput,
               index === 0,
             )
+
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+            
             log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
             log.debug(black(`  -> ${csvData}`))
             log.info(green('Transaction successfully validated and recorded.'))

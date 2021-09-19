@@ -1,7 +1,10 @@
 build/
 docs/
 node_modules/
-test/
+test/input.csv
+test/output.csv
+test/failed.csv
+test/alreadyDistributedAccounts
 
 *.code-workspace
 .nyc_output/
