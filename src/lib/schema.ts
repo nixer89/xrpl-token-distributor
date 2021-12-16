@@ -5,12 +5,12 @@
  */
 
 import fs from 'fs'
+import { isValidAddress } from 'xrpl'
 
 // Schemas to parse and validate all external inputs
 // Catch user input errors before the payment starts!
 // -> CSV input/output
 // -> Prompt input (answers to questions)
-import { XrplNetwork, XrpUtils } from 'xpring-js'
 import * as z from 'zod'
 
 import log, { black } from './log'
@@ -51,7 +51,7 @@ export const txInputSchema = z.object({
   address: z
     .string()
     .nonempty()
-    .refine((val) => XrpUtils.isValidClassicAddress(val), {
+    .refine((val) => isValidAddress(val), {
       message: '`address` must be a valid XRPL classic address.',
     }),
   amount: z.number().positive()
@@ -80,7 +80,7 @@ export const senderInputSchema = z.object({
     .refine((val) => !fs.existsSync(val), {
       message: `Output CSV already exists.`,
     }),
-  network: z.nativeEnum(XrplNetwork),
+  network: z.string().nonempty(),
   grpcUrl: z.string().url(),
   maxFee: z.number().positive(),
   secret: z.string().nonempty(),

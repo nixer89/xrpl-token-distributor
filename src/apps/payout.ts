@@ -16,7 +16,6 @@ import {
 } from '../lib/schema'
 import {
   connectToLedger,
-  connectToLedgerToken,
   generateWallet,
   reliableBatchPayment,
 } from '../lib/tokens'
@@ -27,14 +26,14 @@ import {
  * @param override - Override prompt inputs. Useful for testing and debugging.
  * @throws Re-throws error after logging.
  */
-export default async function payout(): Promise<void> {
+ export default async function payout(): Promise<void> {
   try {
     // Prompt user to configure XRP payout and validate user input
     const senderInput = {
       inputCsv: config.INPUT_CSV_FILE,
       outputCsv: config.OUTPUT_CSV_FILE,
       network: config.XRPL_NETWORK,
-      grpcUrl: 'mainnet' === config.XRPL_NETWORK ? config.WebGrpcEndpoint.Main : config.WebGrpcEndpoint.Test,
+      wssUrl: 'mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test,
       maxFee: 0.000012,
       secret: config.DISTRIBUTOR_SECRET,
       confirmed: true
@@ -61,40 +60,24 @@ export default async function payout(): Promise<void> {
     log.info('')
     log.info(`Generating ${senderInput.network} wallet from secret..`)
     const [wallet, classicAddress] = generateWallet(
-      senderInput.secret,
-      senderInput.network,
+      senderInput.secret
     )
     log.info(green('Generated wallet from secret.'))
-    log.info(black(`  -> Sender XRPL X-Address: ${wallet.getAddress()}`))
+    log.info(black(`  -> Sender XRPL X-Address: ${wallet.address}`))
     log.info(black(`  -> Sender XRPL Classic address: ${classicAddress}`))
 
     // Connect to XRPL
     log.info('')
     log.info(`Connecting to XRPL ${senderInput.network}..`)
     const [xrpNetworkClient, balance] = await connectToLedger(
-      senderInput.grpcUrl,
-      senderInput.network,
+      senderInput.wssUrl,
       classicAddress,
     )
     log.info(green(`Connected to XRPL ${senderInput.network}.`))
     log.info(
-      black(`  -> RippleD node web gRPC endpoint: ${senderInput.grpcUrl}`),
+      black(`  -> RippleD node wss endpoint: ${senderInput.wssUrl}`),
     )
     log.info(black(`  -> ${classicAddress} balance: ${balance} XRP`))
-
-    // Connect to XRPL Token endpoint
-    log.info('')
-    log.info(`Connecting to XRPL ${senderInput.network}..`)
-    const issuedCurrencyClient = await connectToLedgerToken(
-      senderInput.grpcUrl,
-      'mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test,
-      senderInput.network,
-      classicAddress,
-    )
-    log.info(green(`Connected to XRPL ${senderInput.network} Token endpoint.`))
-    log.info(
-      black(`  -> RippleD node web gRPC endpoint: ${senderInput.grpcUrl}`),
-    )
 
     //read existing sent accounts
     let alreadySentToAccounts: string[] = [];
@@ -118,17 +101,21 @@ export default async function payout(): Promise<void> {
 
     // Reliably send XRP to accounts specified in transaction inputs
     const txOutputWriteStream = fs.createWriteStream(senderInput.outputCsv)
-    await reliableBatchPayment(
+    let sentSkipped:any[] = await reliableBatchPayment(
       txInputs,
       txOutputWriteStream,
       txOutputSchema,
       wallet,
       xrpNetworkClient,
-      issuedCurrencyClient,
-      parseInt(config.RETRY_LIMIT),
       alreadySentToAccounts
     )
 
+    log.info('')
+    log.info(
+      green(
+        `Batch payout complete succeeded. Reliably sent ${sentSkipped[0]} payments and skipped ${sentSkipped[1]} due to missing TrustLine or Account deleted.`,
+      ),
+    )
   } catch (err) {
     if (err instanceof ZodError) {
       log.error(err.errors)
