@@ -23,10 +23,9 @@ export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
 export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '68214640';
 
 //issuer properties
-//export const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rHP4bHzghBdzskqcaPciL5WRGkHosB5zYx'; // <--- real MGS!
 export const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rMJAXYsbNzhwp7FfYnAsYP5ty3R9XnurPo';
 
 export const CURRENCY_CODE = process.env.CURRENCY_CODE || 'XDX';
 export const TOKEN_AMOUNT = process.env.TOKEN_AMOUNT || '48800';
 export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'rDLPDG8pNpXsk4xFxHApHd83W7nKUAvfzf';
-export const DISTRIBUTOR_SECRET = process.env.DISTRIBUTOR_SECRET || 'snQoG4wQre2GabCiMaoT8w61zWEAT';
+export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '399150 474506 009147 088773 432160 282843 253738 605430';
