@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import {AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, TxResponse, Wallet } from 'xrpl'
+import {AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
 
 import * as z from 'zod'
 
@@ -105,7 +105,7 @@ export function generateWallet(
   senderWallet: Wallet,
   xrplClient: Client,
   receiverAccount: TxInput,
-): Promise<TxResponse | null> {
+): Promise<SubmitResponse | null> {
 
   try {
 
@@ -119,8 +119,9 @@ export function generateWallet(
         value: receiverAccount.amount.toString()
       }
     }
+
     // Submit payment
-    return xrplClient.submitAndWait(payment, { wallet: senderWallet});
+    return xrplClient.submit(payment, { wallet: senderWallet});
   } catch(err) {
     console.log(err);
     return null;
@@ -244,20 +245,19 @@ export async function reliableBatchPayment(
               ),
             )
 
-            const txResposne = await submitPayment(
+            const txResponse = await submitPayment(
               senderWallet,
               xrpClient,
               txInput
             )
 
-            if(txResposne && txResposne.result && txResposne.result.meta && typeof(txResposne.result.meta) === 'object' && txResposne.result.meta.TransactionResult === 'tesSUCCESS') {
-              log.info('Submitted payment transaction.')
-              log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+            if(txResponse && txResponse.result) {
+              //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
     
               log.info(
-                green('Transaction successfully validated. Your money has been sent.'),
+                green('Transaction successfully submitted.'),
               )
-              log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+              //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
     
               success++;
               successAccounts.push(txInput.address);
@@ -265,7 +265,14 @@ export async function reliableBatchPayment(
               // Transform transaction input to output
               const txOutput = {
                 ...txInput,
-                transactionHash: txResposne.result.hash
+                engine_result: txResponse.result.engine_result,
+                engine_result_code: txResponse.result.engine_result_code,
+                accepted: txResponse.result.accepted,
+                applied: txResponse.result.applied,
+                broadcast: txResponse.result.broadcast,
+                kept: txResponse.result.kept,
+                queued: txResponse.result.queued,
+                txblob: txResponse.result.tx_blob
               }
     
               // Write transaction output to CSV, only use headers on first input
@@ -280,14 +287,14 @@ export async function reliableBatchPayment(
 
               log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
               log.debug(black(`  -> ${csvData}`))
-              log.info(green('Transaction successfully validated and recorded.'))
+              log.info(green('Transaction successfully submitted and recorded.'))
             } else {
 
               log.info(red(`Transaction failed to: ${txInput.address}`));
-              if(txResposne)
-                console.log(JSON.stringify(txResposne));
+              if(txResponse)
+                console.log(JSON.stringify(txResponse));
 
-                fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + txResposne?.result?.hash+"\n")
+              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + txResponse?.result?.tx_blob+"\n")
             }
           } else {
             log.info(red(`No Trust Line for: ${txInput.address}`));
@@ -307,6 +314,7 @@ export async function reliableBatchPayment(
     } catch(err) {
       log.info(red("ERROR HAPPENED:"));
       console.log(JSON.stringify(err));
+      break;
     }
   }
 
