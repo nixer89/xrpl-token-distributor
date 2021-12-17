@@ -156,17 +156,17 @@ export async function checkTrustLine(
   if(trustlineResponse?.result?.lines?.length > 0) {
     let lines = trustlineResponse?.result?.lines;
     for(let i = 0; i < lines.length; i++) {
-      log.info("Trustline: " + JSON.stringify(lines[i]));
+      //log.info("Trustline: " + JSON.stringify(lines[i]));
 
       if(lines[i].account == config.ISSUER_ADDRESS && lines[i].currency == config.CURRENCY_CODE) {
         let limit = parseFloat(lines[i].limit);
         let balance = parseFloat(lines[i].balance);
         let minLimit = balance + receiverAccount.amount;
 
-        console.log("limit: " + limit);
-        console.log("balance: " + balance);
-        console.log("minLimit: " + minLimit);
-        console.log("amount: "+ receiverAccount.amount);
+        //console.log("limit: " + limit);
+        //console.log("balance: " + balance);
+        //console.log("minLimit: " + minLimit);
+        //console.log("amount: "+ receiverAccount.amount);
 
         if(limit > minLimit)
         //limit is high enough to receive tokens!
@@ -288,19 +288,30 @@ export async function reliableBatchPayment(
               log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
               log.debug(black(`  -> ${csvData}`))
               log.info(green('Transaction successfully submitted and recorded.'))
+
+              //check transaction fee!!!!
+              if(txResponse?.result?.tx_json?.Fee) {
+                let fee = parseInt(txResponse.result.tx_json.Fee)
+
+                if(fee > 10000) {
+                  log.info(red('The fee for the last transaction exceeded the limit of 10000 drops! -> ' + fee))
+                  log.info(red('Stopping the execution!!'))
+                  break;
+                }
+              }
             } else {
 
               log.info(red(`Transaction failed to: ${txInput.address}`));
               if(txResponse)
                 console.log(JSON.stringify(txResponse));
 
-              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + txResponse?.result?.tx_blob+"\n")
+              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
             }
           } else {
             log.info(red(`No Trust Line for: ${txInput.address}`));
             log.info(red(`No tokens were sent to: ${txInput.address}`));
             skip++;
-            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE\n")
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
           } 
         } else {
             log.info(red(`Account does not exist: ${txInput.address}`));
