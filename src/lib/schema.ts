@@ -4,7 +4,6 @@
  * original version: https://github.com/ripple/xrp-batch-payout
  */
 
-import fs from 'fs'
 import { isValidAddress } from 'xrpl'
 
 // Schemas to parse and validate all external inputs
@@ -70,27 +69,3 @@ export const txOutputSchema = txInputSchema.extend({
   txblob: z.string()
 })
 export type TxOutput = z.infer<typeof txOutputSchema>
-
-// Object schema for the payer inputs (payer answers or overrides to prompt questions)
-export const senderInputSchema = z.object({
-  inputCsv: z
-    .string()
-    .nonempty()
-    // eslint-disable-next-line node/no-sync -- Synchronous call works here.
-    .refine((val) => fs.existsSync(val), {
-      message: `Input CSV does not exist.`,
-    }),
-  outputCsv: z
-    .string()
-    .nonempty()
-    // eslint-disable-next-line node/no-sync -- Synchronous call works here.
-    .refine((val) => !fs.existsSync(val), {
-      message: `Output CSV already exists.`,
-    }),
-  network: z.string().nonempty(),
-  grpcUrl: z.string().url(),
-  maxFee: z.number().positive(),
-  secret: z.string().nonempty(),
-  confirmed: z.boolean(),
-})
-export type SenderInput = z.infer<typeof senderInputSchema>

@@ -19,7 +19,7 @@ import { TxInput, TxOutput } from './schema'
 /**
  * Connect to the XRPL network.
  *
- * @param grpcUrl - The web gRPC endpoint of the rippleD node.
+ * @param wssUrl - The web gRPC endpoint of the rippleD node.
  * @param network - The XRPL network (devnet/testnet/mainnet).
  * @param classicAddress - The sender's XRP classic address.
  *

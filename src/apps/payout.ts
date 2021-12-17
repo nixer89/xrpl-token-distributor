@@ -30,15 +30,14 @@ import {
  export default async function payout(): Promise<void> {
   try {
     // Prompt user to configure XRP payout and validate user input
-    let secretNumberAccount:Account = new Account(config.DISTRIBUTOR_SECRET_NUMBERS);
+    let secretNumberAccount:Account|null = config.DISTRIBUTOR_SECRET_NUMBERS && config.DISTRIBUTOR_SECRET_NUMBERS.length > 10 ? new Account(config.DISTRIBUTOR_SECRET_NUMBERS) : null;
     
     const senderInput = {
       inputCsv: config.INPUT_CSV_FILE,
       outputCsv: config.OUTPUT_CSV_FILE,
       network: config.XRPL_NETWORK,
       wssUrl: 'mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test,
-      maxFee: 0.000012,
-      secret: secretNumberAccount.getFamilySeed(),
+      secret: secretNumberAccount ? secretNumberAccount.getFamilySeed() : config.DISTRIBUTOR_FAMILY_SEED,
       confirmed: true
     }
 
