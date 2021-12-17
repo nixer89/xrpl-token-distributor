@@ -151,6 +151,7 @@ export async function checkTrustLine(
       command: 'account_lines',
       account: receiverAccount.address,
       peer: config.ISSUER_ADDRESS,
+      limit: 200,
       ledger_index: 'validated'
     }
 
@@ -186,6 +187,7 @@ export async function checkTrustLine(
         command: 'account_lines',
         account: config.ISSUER_ADDRESS,
         peer: receiverAccount.address,
+        limit: 200,
         ledger_index: 'validated'
       }
 
