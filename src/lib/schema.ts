@@ -48,12 +48,7 @@ export function validateObjects<T>(
 
 // Object schema for the receiver inputs (rows from the input CSV)
 export const txInputSchema = z.object({
-  address: z
-    .string()
-    .nonempty()
-    .refine((val) => isValidAddress(val), {
-      message: '`address` must be a valid XRPL classic address.',
-    }),
+  address: z.string(),
   amount: z.number().positive()
 })
 export type TxInput = z.infer<typeof txInputSchema>
