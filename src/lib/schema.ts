@@ -5,7 +5,6 @@
  */
 
 import fs from 'fs'
-import { isValidAddress } from 'xrpl'
 
 // Schemas to parse and validate all external inputs
 // Catch user input errors before the payment starts!
