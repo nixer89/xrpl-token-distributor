@@ -8,6 +8,7 @@
 import fs from 'fs'
 
 import {AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
 
@@ -143,22 +144,83 @@ export async function checkTrustLine(
     )
     log.info(black(`  -> Destination: ${receiverAccount.address}`))
     log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS}`))
+
+    let lines:Trustline[] = [];
     
     let trustlineRequest:AccountLinesRequest = {
       command: 'account_lines',
       account: receiverAccount.address,
-      peer: config.ISSUER_ADDRESS
+      peer: config.ISSUER_ADDRESS,
+      ledger_index: 'validated'
     }
 
     let trustlineResponse:AccountLinesResponse = await xrplClient.request(trustlineRequest);
 
-    if(trustlineResponse?.result?.lines?.length > 0) {
-      let lines = trustlineResponse?.result?.lines;
+    //console.log(JSON.stringify(trustlineResponse));
+
+    if(trustlineResponse?.result?.lines) {
+
+      lines = lines.concat(trustlineResponse?.result?.lines);
+
+      //check for marker
+      let i = 0;
+      if(trustlineResponse.result.marker) {
+        while(trustlineResponse.result.marker && lines.length == 0) {
+          trustlineRequest.marker = trustlineResponse.result.marker;
+          trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
+
+          console.log("additional calls: " + ++i);
+
+          trustlineResponse = await xrplClient.request(trustlineRequest);
+
+          if(trustlineResponse?.result?.lines) {
+            lines = lines.concat(trustlineResponse?.result?.lines);
+          }
+        }
+      }
+    }
+
+    /**
+    if(lines.length == 0) {
+      let trustlineRequest2:AccountLinesRequest = {
+        command: 'account_lines',
+        account: config.ISSUER_ADDRESS,
+        peer: receiverAccount.address,
+        ledger_index: 'validated'
+      }
+
+      let trustlineResponse2:AccountLinesResponse = await xrplClient.request(trustlineRequest2);
+
+      if(trustlineResponse2?.result?.lines) {
+        lines = lines.concat(trustlineResponse2.result?.lines);
+
+        //check for marker
+        if(trustlineResponse2.result.marker) {
+          while(trustlineResponse2.result.marker) {
+            trustlineRequest2.marker = trustlineResponse.result.marker;
+            trustlineRequest2.ledger_index = trustlineResponse.result.ledger_index;
+
+            trustlineResponse2 = await xrplClient.request(trustlineRequest2);
+
+            if(trustlineResponse2?.result?.lines) {
+              lines = lines.concat(trustlineResponse2?.result?.lines);
+            }
+          }
+        }
+      }
+    }
+
+    */
+
+    if(lines?.length > 0) {
       for(let i = 0; i < lines.length; i++) {
         //log.info("Trustline: " + JSON.stringify(lines[i]));
 
-        if((trustlineResponse.result.account === config.ISSUER_ADDRESS || lines[i].account == config.ISSUER_ADDRESS) && lines[i].currency == config.CURRENCY_CODE) {
+        if(lines[i].currency === config.CURRENCY_CODE) {
           let usePeer:boolean = lines[i].limit === "0";
+
+          //console.log("usePeer: " + usePeer);
+
           let limit = parseFloat(usePeer ? lines[i].limit_peer : lines[i].limit);
           let balance = parseFloat(lines[i].balance);
 
@@ -173,10 +235,10 @@ export async function checkTrustLine(
           //console.log("minLimit: " + minLimit);
           //console.log("amount: "+ receiverAccount.amount);
 
-          if(limit > minLimit)
-          //limit is high enough to receive tokens!
+          if(limit > minLimit) {
+            //console.log("limit is high enough to receive tokens!");
             found = true;
-          else
+          } else
             log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE +": " + JSON.stringify(lines[i]));
 
           break;
@@ -184,6 +246,7 @@ export async function checkTrustLine(
       }
     }
   } catch(err) {
+    console.log(err)
     found = false;
   }
 
@@ -319,13 +382,17 @@ export async function reliableBatchPayment(
             fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
           }
         } else {
+          log.info('')
+            log.info(
+              `Skipped account ${index + 1} / ${txInputs.length} ..`,
+            )
           log.info(red(`No Trust Line / Account Deleted: ${txInput.address}`));
           log.info(red(`No tokens were sent to: ${txInput.address}`));
           skip++;
           fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
-        } 
+        }
       } else {
-        log.info(red(`Skipped: ${txInput.address} - already processed`));
+        log.info(red(`Skipped account ${index + 1} / ${txInputs.length}: ${txInput.address} - already processed`));
       }
     } catch(err) {
       log.info(red("ERROR HAPPENED:"));
