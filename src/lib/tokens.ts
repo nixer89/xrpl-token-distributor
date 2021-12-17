@@ -207,6 +207,7 @@ export async function reliableBatchPayment(
 ): Promise<any[]> {
   let success:number = 0;
   let skip:number = 0;
+  let feeExceededOnce:boolean = false;
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
   
@@ -241,7 +242,7 @@ export async function reliableBatchPayment(
             log.info(black(`  -> Receiver classic address: ${txInput.address}`))
             log.info(
               black(
-                `  -> Amount: ${txInput.amount} MGS.`,
+                `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
               ),
             )
 
@@ -294,9 +295,16 @@ export async function reliableBatchPayment(
                 let fee = parseInt(txResponse.result.tx_json.Fee)
 
                 if(fee > 10000) {
-                  log.info(red('The fee for the last transaction exceeded the limit of 10000 drops! -> ' + fee))
-                  log.info(red('Stopping the execution!!'))
-                  break;
+                  //check if it is the first time. if yes -> sleep for 2 minutes and continue
+                  if(!feeExceededOnce) {
+                    //sleep for a minute and continue
+                    await sleep(60000);
+                    feeExceededOnce = true;
+                  } else {
+                    log.info(red('The fee for the last two transactions exceeded the limit of 10000 drops! -> ' + fee))
+                    log.info(red('Stopping the execution!!'))
+                    break;
+                  }
                 }
               }
             } else {
@@ -338,4 +346,8 @@ export async function reliableBatchPayment(
   fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
 
   return [success, skip];
+}
+
+function sleep(ms:number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

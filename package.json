@@ -1,6 +1,6 @@
 {
   "name": "xrpl-token-distributor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A library and command-line tool for batched, reliable payouts with XRP.",
   "homepage": "https://github.com/nixer89/xrpl-token-distributor#readme",
   "bugs": {
