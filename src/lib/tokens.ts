@@ -305,6 +305,8 @@ export async function reliableBatchPayment(
                     log.info(red('Stopping the execution!!'))
                     break;
                   }
+                } else {
+                  feeExceededOnce = false;
                 }
               }
             } else {
