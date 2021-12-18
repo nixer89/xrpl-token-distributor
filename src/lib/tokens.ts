@@ -8,6 +8,7 @@
 import fs from 'fs'
 
 import {AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
 
@@ -134,49 +135,121 @@ export async function checkTrustLine(
 ): Promise<boolean> {
 
   //const issuerXAddress = XrpUtils.encodeXAddress(config.ISSUER_ADDRESS, 0) as string
-
-  // Submit payment
-  log.info('')
-  log.info(
-    `Checking Trustlines ...`,
-  )
-  log.info(black(`  -> Destination: ${receiverAccount.address}`))
-  log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS}`))
-  
-  let trustlineRequest:AccountLinesRequest = {
-    command: 'account_lines',
-    account: receiverAccount.address,
-    peer: config.ISSUER_ADDRESS
-  }
-
-  let trustlineResponse:AccountLinesResponse = await xrplClient.request(trustlineRequest);
-
   let found:boolean = false;
 
-  if(trustlineResponse?.result?.lines?.length > 0) {
-    let lines = trustlineResponse?.result?.lines;
-    for(let i = 0; i < lines.length; i++) {
-      //log.info("Trustline: " + JSON.stringify(lines[i]));
+  try {
+    log.info('')
+    log.info(
+      `Checking Trustlines ...`,
+    )
+    log.info(black(`  -> Destination: ${receiverAccount.address}`))
+    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS}`))
 
-      if(lines[i].account == config.ISSUER_ADDRESS && lines[i].currency == config.CURRENCY_CODE) {
-        let limit = parseFloat(lines[i].limit);
-        let balance = parseFloat(lines[i].balance);
-        let minLimit = balance + receiverAccount.amount;
+    let lines:Trustline[] = [];
+    
+    let trustlineRequest:AccountLinesRequest = {
+      command: 'account_lines',
+      account: receiverAccount.address,
+      peer: config.ISSUER_ADDRESS,
+      limit: 200,
+      ledger_index: 'validated'
+    }
 
-        //console.log("limit: " + limit);
-        //console.log("balance: " + balance);
-        //console.log("minLimit: " + minLimit);
-        //console.log("amount: "+ receiverAccount.amount);
+    let trustlineResponse:AccountLinesResponse = await xrplClient.request(trustlineRequest);
 
-        if(limit > minLimit)
-        //limit is high enough to receive tokens!
-          found = true;
-        else
-          log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE +": " + JSON.stringify(lines[i]));
+    //console.log(JSON.stringify(trustlineResponse));
 
-        break;
+    if(trustlineResponse?.result?.lines) {
+
+      lines = lines.concat(trustlineResponse?.result?.lines);
+
+      //check for marker
+      let i = 0;
+      if(trustlineResponse.result.marker) {
+        while(trustlineResponse.result.marker && lines.length == 0) {
+          trustlineRequest.marker = trustlineResponse.result.marker;
+          trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
+
+          console.log("additional calls: " + ++i);
+
+          trustlineResponse = await xrplClient.request(trustlineRequest);
+
+          if(trustlineResponse?.result?.lines) {
+            lines = lines.concat(trustlineResponse?.result?.lines);
+          }
+        }
       }
     }
+
+    /**
+    if(lines.length == 0) {
+      let trustlineRequest2:AccountLinesRequest = {
+        command: 'account_lines',
+        account: config.ISSUER_ADDRESS,
+        peer: receiverAccount.address,
+        limit: 200,
+        ledger_index: 'validated'
+      }
+
+      let trustlineResponse2:AccountLinesResponse = await xrplClient.request(trustlineRequest2);
+
+      if(trustlineResponse2?.result?.lines) {
+        lines = lines.concat(trustlineResponse2.result?.lines);
+
+        //check for marker
+        if(trustlineResponse2.result.marker) {
+          while(trustlineResponse2.result.marker) {
+            trustlineRequest2.marker = trustlineResponse.result.marker;
+            trustlineRequest2.ledger_index = trustlineResponse.result.ledger_index;
+
+            trustlineResponse2 = await xrplClient.request(trustlineRequest2);
+
+            if(trustlineResponse2?.result?.lines) {
+              lines = lines.concat(trustlineResponse2?.result?.lines);
+            }
+          }
+        }
+      }
+    }
+
+    */
+
+    if(lines?.length > 0) {
+      for(let i = 0; i < lines.length; i++) {
+        //log.info("Trustline: " + JSON.stringify(lines[i]));
+
+        if(lines[i].currency === config.CURRENCY_CODE) {
+          let usePeer:boolean = lines[i].limit === "0";
+
+          //console.log("usePeer: " + usePeer);
+
+          let limit = parseFloat(usePeer ? lines[i].limit_peer : lines[i].limit);
+          let balance = parseFloat(lines[i].balance);
+
+          //make balance positive!
+          if(balance < 0)
+            balance = balance * -1;
+
+          let minLimit = balance + receiverAccount.amount;
+
+          //console.log("limit: " + limit);
+          //console.log("balance: " + balance);
+          //console.log("minLimit: " + minLimit);
+          //console.log("amount: "+ receiverAccount.amount);
+
+          if(limit > minLimit) {
+            //console.log("limit is high enough to receive tokens!");
+            found = true;
+          } else
+            log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE +": " + JSON.stringify(lines[i]));
+
+          break;
+        }
+      }
+    }
+  } catch(err) {
+    console.log(err)
+    found = false;
   }
 
   return found;
@@ -207,6 +280,7 @@ export async function reliableBatchPayment(
 ): Promise<any[]> {
   let success:number = 0;
   let skip:number = 0;
+  let feeExceededOnce:boolean = false;
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
   
@@ -215,112 +289,112 @@ export async function reliableBatchPayment(
     try {
       if(!successAccounts.includes(txInput.address)) {
 
-        log.info('Checking account exists')
+        log.info('Checking existing trustline')
 
-        let accountExists = false;
+        let trustlineExists = false;
         
         try {
-          let balance = await xrpClient.getXrpBalance(txInput.address);
-          accountExists = balance != null;
+          trustlineExists = await checkTrustLine(xrpClient, txInput);
         } catch(err) {
-          accountExists = false;
+          trustlineExists = false;
         }
 
-        if(accountExists) {
+        if(trustlineExists) {
+          // Submit payment
+          log.info('')
+          log.info(
+            `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
+          )
+          log.info(black(`  -> Receiver classic address: ${txInput.address}`))
+          log.info(
+            black(
+              `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
+            ),
+          )
 
-          log.info('Checking existing trustline')
+          const txResponse = await submitPayment(
+            senderWallet,
+            xrpClient,
+            txInput
+          )
 
-          const trustlineExists = await checkTrustLine(xrpClient, txInput);
-
-          if(trustlineExists) {
-            // Submit payment
-            log.info('')
+          if(txResponse && txResponse.result) {
+            //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+  
             log.info(
-              `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
+              green('Transaction successfully submitted.'),
             )
-            log.info(black(`  -> Receiver classic address: ${txInput.address}`))
-            log.info(
-              black(
-                `  -> Amount: ${txInput.amount} MGS.`,
-              ),
+            //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+  
+            success++;
+            successAccounts.push(txInput.address);
+  
+            // Transform transaction input to output
+            const txOutput = {
+              ...txInput,
+              engine_result: txResponse.result.engine_result,
+              engine_result_code: txResponse.result.engine_result_code,
+              accepted: txResponse.result.accepted,
+              applied: txResponse.result.applied,
+              broadcast: txResponse.result.broadcast,
+              kept: txResponse.result.kept,
+              queued: txResponse.result.queued,
+              txblob: txResponse.result.tx_blob
+            }
+  
+            // Write transaction output to CSV, only use headers on first input
+            const csvData = parseFromObjectToCsv(
+              txOutputWriteStream,
+              txOutputSchema,
+              txOutput,
+              index === 0,
             )
 
-            const txResponse = await submitPayment(
-              senderWallet,
-              xrpClient,
-              txInput
-            )
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
 
-            if(txResponse && txResponse.result) {
-              //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
-    
-              log.info(
-                green('Transaction successfully submitted.'),
-              )
-              //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
-    
-              success++;
-              successAccounts.push(txInput.address);
-    
-              // Transform transaction input to output
-              const txOutput = {
-                ...txInput,
-                engine_result: txResponse.result.engine_result,
-                engine_result_code: txResponse.result.engine_result_code,
-                accepted: txResponse.result.accepted,
-                applied: txResponse.result.applied,
-                broadcast: txResponse.result.broadcast,
-                kept: txResponse.result.kept,
-                queued: txResponse.result.queued,
-                txblob: txResponse.result.tx_blob
-              }
-    
-              // Write transaction output to CSV, only use headers on first input
-              const csvData = parseFromObjectToCsv(
-                txOutputWriteStream,
-                txOutputSchema,
-                txOutput,
-                index === 0,
-              )
+            log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
+            log.debug(black(`  -> ${csvData}`))
+            log.info(green('Transaction successfully submitted and recorded.'))
 
-              fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+            //check transaction fee!!!!
+            if(txResponse?.result?.tx_json?.Fee) {
+              let fee = parseInt(txResponse.result.tx_json.Fee)
 
-              log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
-              log.debug(black(`  -> ${csvData}`))
-              log.info(green('Transaction successfully submitted and recorded.'))
-
-              //check transaction fee!!!!
-              if(txResponse?.result?.tx_json?.Fee) {
-                let fee = parseInt(txResponse.result.tx_json.Fee)
-
-                if(fee > 10000) {
-                  log.info(red('The fee for the last transaction exceeded the limit of 10000 drops! -> ' + fee))
+              if(fee > 10000) {
+                //check if it is the first time. if yes -> sleep for 2 minutes and continue
+                if(!feeExceededOnce) {
+                  //sleep for a minute and continue
+                  await sleep(60000);
+                  feeExceededOnce = true;
+                } else {
+                  log.info(red('The fee for the last two transactions exceeded the limit of 10000 drops! -> ' + fee))
                   log.info(red('Stopping the execution!!'))
                   break;
                 }
+              } else {
+                feeExceededOnce = false;
               }
-            } else {
-
-              log.info(red(`Transaction failed to: ${txInput.address}`));
-              if(txResponse)
-                console.log(JSON.stringify(txResponse));
-
-              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
             }
           } else {
-            log.info(red(`No Trust Line for: ${txInput.address}`));
-            log.info(red(`No tokens were sent to: ${txInput.address}`));
-            skip++;
-            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
-          } 
+
+            log.info(red(`Transaction failed to: ${txInput.address}`));
+            if(txResponse)
+              console.log(JSON.stringify(txResponse));
+
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+          }
         } else {
-            log.info(red(`Account does not exist: ${txInput.address}`));
-            log.info(red(`No tokens were sent to: ${txInput.address}`));
-            skip++;
-            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", ACCOUNT DELETED\n")
+          log.info('')
+            log.info(
+              `Skipped account ${index + 1} / ${txInputs.length} ..`,
+            )
+          log.info(red(`No Trust Line / Account Deleted: ${txInput.address}`));
+          log.info(red(`No tokens were sent to: ${txInput.address}`));
+          skip++;
+          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
         }
       } else {
-        log.info(red(`Skipped: ${txInput.address} - already processed`));
+        log.info(red(`Skipped account ${index + 1} / ${txInputs.length}: ${txInput.address} - already processed`));
       }
     } catch(err) {
       log.info(red("ERROR HAPPENED:"));
@@ -338,4 +412,8 @@ export async function reliableBatchPayment(
   fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
 
   return [success, skip];
+}
+
+function sleep(ms:number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
