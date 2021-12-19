@@ -34,10 +34,6 @@ I have modified this tool to send issued tokens on the XRPL and adapted it to th
 ```
 Specific environment variables have to be set: (if variable is not set, defaults apply!)
 
-variable: RETRY_LIMIT
-default: 10
-info: Retry limit for reliable send
-
 variable: INPUT_CSV_FILE
 default: './test/input.csv'
 info: input csv file with payment information (account + amount)
@@ -56,7 +52,7 @@ default: 'testnet'
 info: xrpl network to run the script on
 
 variable: XRP_LEDGER_VERSION
-possible values: any number as string,
+possible values: any number  as string,
 default: 'validated' -> recently validated ledger
 info: xrp ledger version in which the trustlines shall be checked.
 
@@ -66,19 +62,35 @@ info: xrp ledger version in which the trustlines shall be checked.
 3. choose your timestamp. (this defines the timestamp when the trustlines will be read from)
 4. find the ledger version for that time stamp on the main view (also called 'ledger_index')
 
-variable: ISSUER_ADDRESS
-info: the issuer account address for which the trustlines are read
+variable: ISSUER_ADDRESS_CHECK
+info: the issuer account address for the existing tokens. This is the account the trustline balances will be checked for
 
-variable: CURRENCY_CODE 
+variable: CURRENCY_CODE_CHECK 
+info: 3 letters currency code of the token of which the trustline balance should be checked for. CASE SENSITIVE! for > 3 letter currency codes please use the HEX notation in upper case
+
+variable: ISSUER_ADDRESS_SENDING
+info: the issuer account address for the token to be distributed.
+
+variable: CURRENCY_CODE_SENDING 
 info: 3 letters currency code of the token to be distributed. CASE SENSITIVE! for > 3 letter currency codes please use the HEX notation in upper case
 
-variable: TOKEN_AMOUNT
-info: defines how many tokens are sent to each 'trustline account'
+variable: DISTRIBUTOR_ACCOUNT
+info: The public account address of the distribution account
 
-variable: SENDER_SECRET
-info: the secret of the distribution account. This is the account which sends the payments to the 'trustline accounts'
+variable: DISTRIBUTOR_FAMILY_SEED
+info: the secret key (family seed) of the distribution account. This is the account which sends the payments to the 'trustline accounts'
+
+variable: DISTRIBUTOR_SECRET_NUMBERS
+info: the secret numbers of the distribution account. This is the account which sends the payments to the 'trustline accounts'
+
+variable: MINIMUM_NUMBER_TOKENS
+info: the minimum number of tokens (CURRENCY_CODE_CHECK) one has to hold to be elegible for the new distribution. set it to "0" if you want to distribute to everyone
+
+variable: DISTRIBUTION_RATIO
+info: the ratio in which the new token should be send out. as example: if ratio is 1.5, the MINIMUM_NUMBER_TOKENS = 100 and someone holds exactly 100 tokens, the tool will distribute 150 new tokens (CURRENCY_CODE_SENDING) to that account
 
 ```
+
 When all the above environment variables are set, execute the following commands:
 
 1. run 'node .\build\trustlineToCsv.js' -> this will generate the fiel defined with 'INPUT_CSV_FILE'

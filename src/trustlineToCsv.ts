@@ -107,7 +107,7 @@ async function readAndConvertToCsv() {
                 if(trustlineBalance < 0)
                     trustlineBalance = trustlineBalance * -1;
 
-                if(trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
+                if(trustlineBalance > 0 && trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
                     let amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO));
 
                     newTrustlineAccounts.push({account: line.account, amount: amountToSend});
