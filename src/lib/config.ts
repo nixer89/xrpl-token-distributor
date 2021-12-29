@@ -21,11 +21,11 @@ export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
 export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE || '';
+export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
+export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE || '';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
+export const CURRENCY_CODE_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
 
 export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
