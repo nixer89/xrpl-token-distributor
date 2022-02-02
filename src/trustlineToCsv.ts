@@ -4,33 +4,18 @@ import * as config from './lib/config'
 
 async function readAndConvertToCsv() {
 
-    if(!config.CURRENCY_CODE_CHECK) {
-        console.log("please set environment variable 'CURRENCY_CODE_CHECK' to the currency code. Currency codes longer thn 3 characters need to be set as HEX string");
-        return;
-    }
-
-    if(!config.CURRENCY_CODE_SENDING) {
+    if(!config.CURRENCY_CODE) {
         console.log("please set environment variable 'CURRENCY_CODE_SENDING' to the currency code. Currency codes longer thn 3 characters need to be set as HEX string");
         return;
     }
-    
-    if(!config.ISSUER_ADDRESS_CHECK) {
-        console.log("please set environment variable 'ISSUER_ADDRESS_CHECK' to define the issuer account");
-        return;
-    }
 
-    if(!config.ISSUER_ADDRESS_SENDING) {
+    if(!config.ISSUER_ADDRESS) {
         console.log("please set environment variable 'ISSUER_ADDRESS_SENDING' to define the issuer account");
         return;
     }
 
     if(!config.XRP_LEDGER_VERSION) {
         console.log("please set environment variable 'LEDGER_VERSION' to define the ledger to read the data from");
-        return;
-    }
-
-    if(!config.DISTRIBUTION_RATIO) {
-        console.log("please set environment variable 'DISTRIBUTION_RATIO' to define the amount each trustline will receive");
         return;
     }
 
@@ -46,7 +31,7 @@ async function readAndConvertToCsv() {
     //collect trustlines
     let trustlineRequest:AccountLinesRequest = {
         command: 'account_lines',
-        account: config.ISSUER_ADDRESS_CHECK,
+        account: config.ISSUER_ADDRESS,
         ledger_index: ('validated' === config.XRP_LEDGER_VERSION ? config.XRP_LEDGER_VERSION : parseInt(config.XRP_LEDGER_VERSION)),
         limit: 2000
     }
@@ -98,29 +83,53 @@ async function readAndConvertToCsv() {
 
         let newTrustlineAccounts:any[] = [];
 
-        let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, { peer: config.ISSUER_ADDRESS_SENDING });
+        let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
+        let maxNumberTokensToSend:number = parseInt(config.MAX_NUMBER_TO_SEND);
+        let totalHoldings:number = 0;
+
+        let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, { peer: config.ISSUER_ADDRESS});
 
         trustlines.forEach(line => {
-            if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
+            if(!alreadySentToAccounts.includes(line.account) && !blacklistedAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE && line.balance != "0") {
                 let trustlineBalance = parseFloat(line.balance);
 
                 if(trustlineBalance < 0)
                     trustlineBalance = trustlineBalance * -1;
 
-                if(trustlineBalance > 0 && trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
-                    let amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO));
-
-                    newTrustlineAccounts.push({account: line.account, amount: amountToSend});
-                }
+                console.log("trustlineBalance: " + trustlineBalance);
+                newTrustlineAccounts.push({account: line.account, holdings: trustlineBalance});
+                totalHoldings+= trustlineBalance;
             }
-                
         });
 
         console.log("trustlines: " + newTrustlineAccounts.length);
+
+        let trustlinesToDistribute:any[] = [];
+
+        newTrustlineAccounts.forEach(info => {
+            //calculate percentage of total holdings:
+            let percentage = info.holdings * 100 / totalHoldings;
+
+            console.log("percentage: " + percentage);
+
+            let amountToSend = percentage * maxNumberTokensToSend / 100;
+
+            console.log("amountToSend 1: " + amountToSend);
+
+            amountToSend = amountToSend * 1000000;
+            amountToSend = Math.round(amountToSend);
+            amountToSend = amountToSend / 1000000;
+
+            console.log("amountToSend 2: " + amountToSend);
+
+            if(amountToSend > 0) {
+                trustlinesToDistribute.push({account: info.account, amount: amountToSend});
+            }
+        });
         
         let total = 0;
         fs.writeFileSync(config.INPUT_CSV_FILE, "address,amount\n")
-        newTrustlineAccounts.forEach(info => {
+        trustlinesToDistribute.forEach(info => {
             fs.appendFileSync(config.INPUT_CSV_FILE, info.account + "," + info.amount +"\n")
             total = total + info.amount;
         });
@@ -130,7 +139,7 @@ async function readAndConvertToCsv() {
         console.log("DISTRIBUTOR BALANCE: " + JSON.stringify(distributorBalances));
 
         for(let i = 0; i < distributorBalances.length; i++) {
-            if(distributorBalances[i].currency == config.CURRENCY_CODE_SENDING && parseFloat(distributorBalances[i].value) < total) {
+            if(distributorBalances[i].currency == config.CURRENCY_CODE && parseFloat(distributorBalances[i].value) < total) {
                 console.log("\n\nBALANCE OF DISTRIBUTOR ACCOUNT IS NOT HIGH ENOUGH TO DISTRIBUTE ALL TOKENS!")
                 console.log("total amount of tokens to be sent: " + total);
                 console.log("distributor balance: " + distributorBalances[i].value)

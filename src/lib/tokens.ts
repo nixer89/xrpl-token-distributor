@@ -115,8 +115,8 @@ export function generateWallet(
       Account: senderWallet.classicAddress,
       Destination: receiverAccount.address,
       Amount: {
-        currency: config.CURRENCY_CODE_SENDING,
-        issuer: config.ISSUER_ADDRESS_SENDING,
+        currency: config.CURRENCY_CODE,
+        issuer: config.ISSUER_ADDRESS,
         value: receiverAccount.amount.toString()
       }
     }
@@ -143,14 +143,14 @@ export async function checkTrustLine(
       `Checking Trustlines ...`,
     )
     log.info(black(`  -> Destination: ${receiverAccount.address}`))
-    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS_SENDING}`))
+    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS}`))
 
     let lines:Trustline[] = [];
     
     let trustlineRequest:AccountLinesRequest = {
       command: 'account_lines',
       account: receiverAccount.address,
-      peer: config.ISSUER_ADDRESS_SENDING,
+      peer: config.ISSUER_ADDRESS,
       limit: 200,
       ledger_index: 'validated'
     }
@@ -218,7 +218,7 @@ export async function checkTrustLine(
       for(let i = 0; i < lines.length; i++) {
         //log.info("Trustline: " + JSON.stringify(lines[i]));
 
-        if(lines[i].currency === config.CURRENCY_CODE_SENDING) {
+        if(lines[i].currency === config.CURRENCY_CODE) {
           let usePeer:boolean = lines[i].limit === "0";
 
           //console.log("usePeer: " + usePeer);
@@ -241,7 +241,7 @@ export async function checkTrustLine(
             //console.log("limit is high enough to receive tokens!");
             found = true;
           } else
-            log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE_SENDING +": " + JSON.stringify(lines[i]));
+            log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE +": " + JSON.stringify(lines[i]));
 
           break;
         }
@@ -308,7 +308,7 @@ export async function reliableBatchPayment(
           log.info(black(`  -> Receiver classic address: ${txInput.address}`))
           log.info(
             black(
-              `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE_SENDING}.`,
+              `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
             ),
           )
 

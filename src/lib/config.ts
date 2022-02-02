@@ -21,15 +21,12 @@ export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
 export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
-export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
+export const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rKuuRSQM2pTtv8ZrhQbU6kBgusCD79cem3';
+export const CURRENCY_CODE = process.env.CURRENCY_CODE || 'XCC';
+export const MAX_NUMBER_TO_SEND = process.env.MAX_NUMBER_TO_SEND || '833333';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '';
-
-export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
+export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'r45RnDCR8z6pBYmk8QYZiLaueAqbWQVc9u';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
-export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
+export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || 's1234';
 
-export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
+export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';
