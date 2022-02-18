@@ -100,6 +100,11 @@ async function readAndConvertToCsv() {
 
         let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, { peer: config.ISSUER_ADDRESS_SENDING });
 
+        //let tokenBalance = parseInt(distributorBalances[0].value);
+
+        let roundUp = config.ROUND_UP === 'true';
+        let roundToNumber = parseInt(config.ROUND_TO_NUMBER);
+
         trustlines.forEach(line => {
             if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
                 let trustlineBalance = parseFloat(line.balance);
@@ -108,7 +113,12 @@ async function readAndConvertToCsv() {
                     trustlineBalance = trustlineBalance * -1;
 
                 if(trustlineBalance > 0 && trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
-                    let amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO));
+                    let amountToSend = null;
+                    
+                    if(roundUp)
+                        amountToSend = Math.ceil(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToNumber) / roundToNumber;
+                    else
+                        amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToNumber) / roundToNumber;
 
                     newTrustlineAccounts.push({account: line.account, amount: amountToSend});
                 }
@@ -119,13 +129,19 @@ async function readAndConvertToCsv() {
         console.log("trustlines: " + newTrustlineAccounts.length);
         
         let total = 0;
+        let trustlinesToBeSend = 0;
         fs.writeFileSync(config.INPUT_CSV_FILE, "address,amount\n")
         newTrustlineAccounts.forEach(info => {
-            fs.appendFileSync(config.INPUT_CSV_FILE, info.account + "," + info.amount +"\n")
-            total = total + info.amount;
+            if(info.amount > 0) {
+                trustlinesToBeSend++;
+                fs.appendFileSync(config.INPUT_CSV_FILE, info.account + "," + info.amount +"\n")
+                total = total + info.amount;
+            }
         });
 
-        console.log("total amount of tokens to be sent: " + total);
+        console.log("total amount of tokens to be sent: " + ((total * roundToNumber) / roundToNumber));
+
+        console.log("To trustlines: " + trustlinesToBeSend)
 
         console.log("DISTRIBUTOR BALANCE: " + JSON.stringify(distributorBalances));
 

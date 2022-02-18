@@ -6,7 +6,7 @@
 
 // wss rippled node endpoints
 export enum WSSEndpoint {
-  Main = 'wss://s2.ripple.com',
+  Main = 'wss://xrplcluster.com',
   Test = 'wss://s.altnet.rippletest.net:51233',
 }
 
@@ -33,3 +33,5 @@ export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
 export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
+export const ROUND_UP = process.env.ROUND_UP || 'false';
+export const ROUND_TO_NUMBER = process.env.ROUND_TO_NUMBER || ''
