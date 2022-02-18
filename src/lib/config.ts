@@ -18,7 +18,7 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '69630265';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '69644978';
 
 //issuer properties
 export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rMJAXYsbNzhwp7FfYnAsYP5ty3R9XnurPo';
