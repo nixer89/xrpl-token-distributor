@@ -134,7 +134,7 @@ async function readAndConvertToCsv() {
         newTrustlineAccounts.forEach(info => {
             if(info.amount > 0) {
                 trustlinesToBeSend++;
-                fs.appendFileSync(config.INPUT_CSV_FILE, info.account + "," + info.amount.toExponential() +"\n")
+                fs.appendFileSync(config.INPUT_CSV_FILE, info.account + "," + info.amount +"\n")
                 total = total + info.amount;
             }
         });
