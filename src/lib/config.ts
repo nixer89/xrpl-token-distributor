@@ -18,20 +18,20 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '69630265';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
-export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
+export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rMJAXYsbNzhwp7FfYnAsYP5ty3R9XnurPo';
+export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || 'XDX';
+export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '0';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'rQa3LW1Au4GxGHzDBkCMKuPcn326w4Wcj2';
+export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || 'RDX';
 
-export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
+export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'rDLPDG8pNpXsk4xFxHApHd83W7nKUAvfzf';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
-export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
-export const ROUND_UP = process.env.ROUND_UP || 'false';
-export const ROUND_TO_NUMBER = process.env.ROUND_TO_NUMBER || ''
+export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '0.00001';
+export const ROUND_UP = process.env.ROUND_UP || 'true';
+export const ROUND_TO_NUMBER = process.env.ROUND_TO_NUMBER || '100000000'
