@@ -34,10 +34,6 @@ I have modified this tool to send issued tokens on the XRPL and adapted it to th
 ```
 Specific environment variables have to be set: (if variable is not set, defaults apply!)
 
-variable: RETRY_LIMIT
-default: 10
-info: Retry limit for reliable send
-
 variable: INPUT_CSV_FILE
 default: './test/input.csv'
 info: input csv file with payment information (account + amount)
@@ -81,11 +77,11 @@ info: the secret of the distribution account. This is the account which sends th
 ```
 When all the above environment variables are set, execute the following commands:
 
-1. run 'node .\build\trustlineToCsv.js' -> this will generate the fiel defined with 'INPUT_CSV_FILE'
+1. run 'npm run trustlines' -> this will generate the fiel defined with 'INPUT_CSV_FILE'
 2. the script will tell you the number of trustlines and the amount of your tokens to be sent
 3. check the validity of the file 'INPUT_CSV_FILE'
 4. check that the distribution account holds more or an equal amount as shown in step 2
-5. run 'node .\build\startPayout.js' -> this will start the execution of the payouts
+5. run 'npm run payout' -> this will start the execution of the payouts
 6. when completed, the OUTPUT_CSV_FILE is generated. Additionally the file ALREADY_SENT_ACCOUNT_FILE is generated with the accounts which successfully received your token
 7. NEVER DELETE THE FILE 'ALREADY_SENT_ACCOUNT_FILE' or payments might be sent to the same account twice! (unless that's what you want)
 
@@ -96,5 +92,5 @@ In case of support, questions or feature requests, please contact me on twitter:
 [@nixerFFM](https://twitter.com/nixerFFM)
 
 Donations are always welcome!
-XRP Address: r9N4v3cWxfh4x6yUNjxNy3DbWUgbzMBLdk
+XRP Address: rNixerUVPwrhxGDt4UooDu6FJ7zuofvjCF
 

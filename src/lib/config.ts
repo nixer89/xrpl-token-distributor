@@ -6,7 +6,7 @@
 
 // wss rippled node endpoints hosted by RippleX
 export enum WSSEndpoint {
-  Main = 'wss://s2.ripple.com',
+  Main = 'wss://xrplcluster.com',
   Test = 'wss://s.altnet.rippletest.net:51233',
 }
 
