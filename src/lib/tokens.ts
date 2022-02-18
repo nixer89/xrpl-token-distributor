@@ -110,11 +110,6 @@ export function generateWallet(
 
   try {
 
-    let amountToSend = receiverAccount.amount.toString();
-
-    if(amountToSend && amountToSend.includes(".") && amountToSend.substring(amountToSend.indexOf('.')).length > 6)
-      amountToSend = receiverAccount.amount.toExponential();
-
     let payment:Payment = {
       TransactionType: "Payment",
       Account: senderWallet.classicAddress,
@@ -122,7 +117,7 @@ export function generateWallet(
       Amount: {
         currency: config.CURRENCY_CODE_SENDING,
         issuer: config.ISSUER_ADDRESS_SENDING,
-        value: amountToSend
+        value: receiverAccount.amount.toString()
       }
     }
 
