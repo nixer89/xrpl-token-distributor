@@ -300,6 +300,9 @@ export async function reliableBatchPayment(
         }
 
         if(trustlineExists) {
+
+          await sleep(500);
+
           // Submit payment
           log.info('')
           log.info(
