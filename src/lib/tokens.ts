@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import {AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, TxResponse, Wallet } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -105,8 +105,8 @@ export function generateWallet(
  export async function submitPayment(
   senderWallet: Wallet,
   xrplClient: Client,
-  receiverAccount: TxInput,
-): Promise<SubmitResponse | null> {
+  receiverAccount: TxInput
+): Promise<TxResponse | null> {
 
   try {
 
@@ -118,11 +118,12 @@ export function generateWallet(
         currency: config.CURRENCY_CODE_SENDING,
         issuer: config.ISSUER_ADDRESS_SENDING,
         value: receiverAccount.amount.toString()
-      }
+      },
+      Fee: "500"
     }
 
     // Submit payment
-    return xrplClient.submit(payment, { wallet: senderWallet});
+    return xrplClient.submitAndWait(payment, { wallet: senderWallet});
   } catch(err) {
     console.log(err);
     return null;
@@ -283,6 +284,22 @@ export async function reliableBatchPayment(
   let feeExceededOnce:boolean = false;
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
+
+  /**
+  let accountInfoRequest:AccountInfoRequest = {
+    command: 'account_info',
+    account: senderWallet.classicAddress,
+  }
+
+  
+  let accountInfoResponse = await xrpClient.request(accountInfoRequest);
+
+  let sequence = null;
+
+  if(accountInfoResponse?.result?.account_data?.Sequence)
+    sequence = accountInfoResponse.result.account_data.Sequence
+
+  **/
   
   for (const [index, txInput] of txInputs.entries()) {
 
@@ -301,7 +318,7 @@ export async function reliableBatchPayment(
 
         if(trustlineExists) {
 
-          await sleep(500);
+          //await sleep(500);
 
           // Submit payment
           log.info('')
@@ -321,8 +338,16 @@ export async function reliableBatchPayment(
             txInput
           )
 
-          if(txResponse && txResponse.result) {
+          if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object') {
+            log.info("TRANSACTION RESPONSE: " + txResponse.result.meta.TransactionResult);
+          }
+
+          //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
+          //  break;
+
+          if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object' && txResponse.result.meta.TransactionResult === 'tesSUCCESS') {
             //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+            const meta = txResponse.result.meta;
   
             log.info(
               green('Transaction successfully submitted.'),
@@ -335,14 +360,9 @@ export async function reliableBatchPayment(
             // Transform transaction input to output
             const txOutput = {
               ...txInput,
-              engine_result: txResponse.result.engine_result,
-              engine_result_code: txResponse.result.engine_result_code,
-              accepted: txResponse.result.accepted,
-              applied: txResponse.result.applied,
-              broadcast: txResponse.result.broadcast,
-              kept: txResponse.result.kept,
-              queued: txResponse.result.queued,
-              txblob: txResponse.result.tx_blob
+              txresult: meta.TransactionResult,
+              validated: txResponse.result.validated,
+              hash: txResponse.result.hash
             }
   
             // Write transaction output to CSV, only use headers on first input
@@ -360,8 +380,8 @@ export async function reliableBatchPayment(
             log.info(green('Transaction successfully submitted and recorded.'))
 
             //check transaction fee!!!!
-            if(txResponse?.result?.tx_json?.Fee) {
-              let fee = parseInt(txResponse.result.tx_json.Fee)
+            if(txResponse?.result?.Fee) {
+              let fee = parseInt(txResponse.result.Fee)
 
               if(fee > 10000) {
                 //check if it is the first time. if yes -> sleep for 2 minutes and continue
@@ -380,11 +400,16 @@ export async function reliableBatchPayment(
             }
           } else {
 
-            log.info(red(`Transaction failed to: ${txInput.address}`));
+            log.info(red(`Transaction possibly failed to: ${txInput.address}`));
             if(txResponse)
               console.log(JSON.stringify(txResponse));
 
             fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+
+            if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object' && txResponse.result.meta.TransactionResult === 'tefPAST_SEQ') {
+              //Break hard on sequence error!
+              break;
+            }
           }
         } else {
           log.info('')
@@ -413,6 +438,13 @@ export async function reliableBatchPayment(
   }
 
   fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+
+  let time = Date.now();
+
+  fs.renameSync(config.FAILED_TRX_FILE, config.FAILED_TRX_FILE + "_" + time)
+  fs.renameSync(config.OUTPUT_CSV_FILE, config.OUTPUT_CSV_FILE + "_" + time)
+  fs.copyFileSync(config.INPUT_CSV_FILE, config.INPUT_CSV_FILE + "_" + time)
+
 
   return [success, skip];
 }
