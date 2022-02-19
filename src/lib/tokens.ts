@@ -356,6 +356,8 @@ export async function reliableBatchPayment(
   
             success++;
             successAccounts.push(txInput.address);
+
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
   
             // Transform transaction input to output
             const txOutput = {
@@ -372,8 +374,6 @@ export async function reliableBatchPayment(
               txOutput,
               index === 0,
             )
-
-            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
 
             log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
             log.debug(black(`  -> ${csvData}`))
