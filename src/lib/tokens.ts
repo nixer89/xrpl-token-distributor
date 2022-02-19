@@ -119,7 +119,7 @@ export function generateWallet(
         issuer: config.ISSUER_ADDRESS_SENDING,
         value: receiverAccount.amount.toString()
       },
-      Fee: "500"
+      Fee: "2500"
     }
 
     // Submit payment
@@ -342,10 +342,12 @@ export async function reliableBatchPayment(
             log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);
           }
 
-          success++;
-          successAccounts.push(txInput.address);
+          if(txResponse?.result?.engine_result != 'tefPAST_SEQ' && !txResponse?.result?.engine_result?.startsWith('telCAN_NOT_QUEUE')) {
+            success++;
+            successAccounts.push(txInput.address);
 
-          fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+          }
 
           //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
           //  break;
@@ -404,15 +406,113 @@ export async function reliableBatchPayment(
             }
           } else {
 
-            log.info(red(`Transaction possibly failed to: ${txInput.address}`));
-            if(txResponse)
-              console.log(JSON.stringify(txResponse));
+            if(txResponse && txResponse.result && (txResponse.result.engine_result === 'tefPAST_SEQ' || txResponse.result.engine_result.startsWith('telCAN_NOT_QUEUE'))) {
+              await sleep(10000);
 
-            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+              // Submit payment again
+              log.info('')
+              log.info(
+                `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
+              )
+              log.info(black(`  -> Receiver classic address: ${txInput.address}`))
+              log.info(
+                black(
+                  `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE_SENDING}.`,
+                ),
+              )
 
-            if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') {
-              //Break hard on sequence error!
-              break;
+              const txResponse = await submitPayment(
+                senderWallet,
+                xrpClient,
+                txInput
+              )
+
+              if(txResponse && txResponse.result && txResponse.result.engine_result) {
+                log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);
+              }
+
+              if(txResponse?.result?.engine_result != 'tefPAST_SEQ' && !txResponse?.result?.engine_result?.startsWith('telCAN_NOT_QUEUE')) {
+                success++;
+                successAccounts.push(txInput.address);
+
+                fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+              }
+
+              //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
+              //  break;
+
+              if(txResponse && txResponse.result && txResponse.result.engine_result === 'tesSUCCESS') {
+                //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+      
+                log.info(
+                  green('Transaction successfully submitted.'),
+                )
+                //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+      
+                // Transform transaction input to output
+                const txOutput = {
+                  ...txInput,
+                  engine_result: txResponse.result.engine_result,
+                  engine_result_code: txResponse.result.engine_result_code,
+                  accepted: txResponse.result.accepted,
+                  applied: txResponse.result.applied,
+                  broadcast: txResponse.result.broadcast,
+                  kept: txResponse.result.kept,
+                  queued: txResponse.result.queued,
+                  txblob: txResponse.result.tx_blob
+                }
+      
+                // Write transaction output to CSV, only use headers on first input
+                const csvData = parseFromObjectToCsv(
+                  txOutputWriteStream,
+                  txOutputSchema,
+                  txOutput,
+                  index === 0,
+                )
+
+                log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
+                log.debug(black(`  -> ${csvData}`))
+                log.info(green('Transaction successfully submitted and recorded.'))
+
+                //check transaction fee!!!!
+                if(txResponse?.result?.tx_json?.Fee) {
+                  let fee = parseInt(txResponse.result.tx_json.Fee)
+
+                  if(fee > 10000) {
+                    //check if it is the first time. if yes -> sleep for 2 minutes and continue
+                    if(!feeExceededOnce) {
+                      //sleep for a minute and continue
+                      await sleep(60000);
+                      feeExceededOnce = true;
+                    } else {
+                      log.info(red('The fee for the last two transactions exceeded the limit of 10000 drops! -> ' + fee))
+                      log.info(red('Stopping the execution!!'))
+                      break;
+                    }
+                  } else {
+                    feeExceededOnce = false;
+                  }
+                }
+              } else {
+
+                log.info(red(`Transaction possibly failed to: ${txInput.address}`));
+                if(txResponse)
+                  console.log(JSON.stringify(txResponse));
+
+                fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+
+                if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') {
+                  //Break hard on sequence error!
+                  break;
+                }
+              }
+            } else {
+
+              log.info(red(`Transaction possibly failed to: ${txInput.address}`));
+              if(txResponse)
+                console.log(JSON.stringify(txResponse));
+
+              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
             }
           }
         } else {
