@@ -59,8 +59,13 @@ export type TxInput = z.infer<typeof txInputSchema>
 
 // Object schema for the receiver outputs (rows in the output CSV)
 export const txOutputSchema = txInputSchema.extend({
-  txresult: z.string(),
-  validated: z.boolean(),
-  hash: z.string()
+  engine_result: z.string(),
+  engine_result_code: z.number(),
+  accepted: z.boolean(),
+  applied: z.boolean(),
+  broadcast: z.boolean(),
+  kept: z.boolean(),
+  queued: z.boolean(),
+  txblob: z.string()
 })
 export type TxOutput = z.infer<typeof txOutputSchema>

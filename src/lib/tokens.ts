@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, TxResponse, Wallet } from 'xrpl'
+import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitRequest, SubmitResponse, TxResponse, Wallet } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -106,7 +106,7 @@ export function generateWallet(
   senderWallet: Wallet,
   xrplClient: Client,
   receiverAccount: TxInput
-): Promise<TxResponse | null> {
+): Promise<SubmitResponse | null> {
 
   try {
 
@@ -123,7 +123,7 @@ export function generateWallet(
     }
 
     // Submit payment
-    return xrplClient.submitAndWait(payment, { wallet: senderWallet});
+    return xrplClient.submit(payment, { wallet: senderWallet});
   } catch(err) {
     console.log(err);
     return null;
@@ -318,7 +318,7 @@ export async function reliableBatchPayment(
 
         if(trustlineExists) {
 
-          //await sleep(500);
+          await sleep(1000);
 
           // Submit payment
           log.info('')
@@ -338,33 +338,37 @@ export async function reliableBatchPayment(
             txInput
           )
 
-          if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object') {
-            log.info("TRANSACTION RESPONSE: " + txResponse.result.meta.TransactionResult);
+          if(txResponse && txResponse.result && txResponse.result.engine_result) {
+            log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);
           }
+
+          success++;
+          successAccounts.push(txInput.address);
+
+          fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
 
           //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
           //  break;
 
-          if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object' && txResponse.result.meta.TransactionResult === 'tesSUCCESS') {
+          if(txResponse && txResponse.result && txResponse.result.engine_result === 'tesSUCCESS') {
             //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
-            const meta = txResponse.result.meta;
   
             log.info(
               green('Transaction successfully submitted.'),
             )
             //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
   
-            success++;
-            successAccounts.push(txInput.address);
-
-            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
-  
             // Transform transaction input to output
             const txOutput = {
               ...txInput,
-              txresult: meta.TransactionResult,
-              validated: txResponse.result.validated,
-              hash: txResponse.result.hash
+              engine_result: txResponse.result.engine_result,
+              engine_result_code: txResponse.result.engine_result_code,
+              accepted: txResponse.result.accepted,
+              applied: txResponse.result.applied,
+              broadcast: txResponse.result.broadcast,
+              kept: txResponse.result.kept,
+              queued: txResponse.result.queued,
+              txblob: txResponse.result.tx_blob
             }
   
             // Write transaction output to CSV, only use headers on first input
@@ -380,8 +384,8 @@ export async function reliableBatchPayment(
             log.info(green('Transaction successfully submitted and recorded.'))
 
             //check transaction fee!!!!
-            if(txResponse?.result?.Fee) {
-              let fee = parseInt(txResponse.result.Fee)
+            if(txResponse?.result?.tx_json?.Fee) {
+              let fee = parseInt(txResponse.result.tx_json.Fee)
 
               if(fee > 10000) {
                 //check if it is the first time. if yes -> sleep for 2 minutes and continue
@@ -406,7 +410,7 @@ export async function reliableBatchPayment(
 
             fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
 
-            if(txResponse && txResponse.result && txResponse.result.meta && typeof txResponse.result.meta === 'object' && txResponse.result.meta.TransactionResult === 'tefPAST_SEQ') {
+            if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') {
               //Break hard on sequence error!
               break;
             }
