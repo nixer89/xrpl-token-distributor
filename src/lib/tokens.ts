@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitRequest, SubmitResponse, TxResponse, Wallet } from 'xrpl'
+import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
