@@ -283,6 +283,22 @@ export async function reliableBatchPayment(
   let feeExceededOnce:boolean = false;
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
+
+  /**
+  let accountInfoRequest:AccountInfoRequest = {
+    command: 'account_info',
+    account: senderWallet.classicAddress,
+  }
+
+  
+  let accountInfoResponse = await xrpClient.request(accountInfoRequest);
+
+  let sequence = null;
+
+  if(accountInfoResponse?.result?.account_data?.Sequence)
+    sequence = accountInfoResponse.result.account_data.Sequence
+
+  **/
   
   for (const [index, txInput] of txInputs.entries()) {
 
@@ -300,6 +316,9 @@ export async function reliableBatchPayment(
         }
 
         if(trustlineExists) {
+
+          await sleep(config.TRANSACTION_TIMEOUT);
+
           // Submit payment
           log.info('')
           log.info(
@@ -318,16 +337,27 @@ export async function reliableBatchPayment(
             txInput
           )
 
-          if(txResponse && txResponse.result) {
+          if(txResponse && txResponse.result && txResponse.result.engine_result) {
+            log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);
+          }
+
+          if(txResponse?.result?.engine_result != 'tefPAST_SEQ' && !txResponse?.result?.engine_result?.startsWith('telCAN_NOT_QUEUE')) {
+            success++;
+            successAccounts.push(txInput.address);
+
+            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+          }
+
+          //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
+          //  break;
+
+          if(txResponse && txResponse.result && txResponse.result.engine_result === 'tesSUCCESS') {
             //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
   
             log.info(
               green('Transaction successfully submitted.'),
             )
             //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
-  
-            success++;
-            successAccounts.push(txInput.address);
   
             // Transform transaction input to output
             const txOutput = {
@@ -349,8 +379,6 @@ export async function reliableBatchPayment(
               txOutput,
               index === 0,
             )
-
-            fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
 
             log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
             log.debug(black(`  -> ${csvData}`))
@@ -377,11 +405,114 @@ export async function reliableBatchPayment(
             }
           } else {
 
-            log.info(red(`Transaction failed to: ${txInput.address}`));
-            if(txResponse)
-              console.log(JSON.stringify(txResponse));
+            if(txResponse && txResponse.result && (txResponse.result.engine_result === 'tefPAST_SEQ' || txResponse.result.engine_result.startsWith('telCAN_NOT_QUEUE'))) {
+              await sleep(10000);
 
-            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+              // Submit payment again
+              log.info('')
+              log.info(
+                `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
+              )
+              log.info(black(`  -> Receiver classic address: ${txInput.address}`))
+              log.info(
+                black(
+                  `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE}.`,
+                ),
+              )
+
+              const txResponse = await submitPayment(
+                senderWallet,
+                xrpClient,
+                txInput
+              )
+
+              if(txResponse && txResponse.result && txResponse.result.engine_result) {
+                log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);
+              }
+
+              if(txResponse?.result?.engine_result != 'tefPAST_SEQ' && !txResponse?.result?.engine_result?.startsWith('telCAN_NOT_QUEUE')) {
+                success++;
+                successAccounts.push(txInput.address);
+
+                fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify({accounts: successAccounts}));
+              }
+
+              //if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') //break hard
+              //  break;
+
+              if(txResponse && txResponse.result && txResponse.result.engine_result === 'tesSUCCESS') {
+                //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+      
+                log.info(
+                  green('Transaction successfully submitted.'),
+                )
+                //log.info(black(`  -> Tx hash: ${txResposne.result.hash}`))
+      
+                // Transform transaction input to output
+                const txOutput = {
+                  ...txInput,
+                  engine_result: txResponse.result.engine_result,
+                  engine_result_code: txResponse.result.engine_result_code,
+                  accepted: txResponse.result.accepted,
+                  applied: txResponse.result.applied,
+                  broadcast: txResponse.result.broadcast,
+                  kept: txResponse.result.kept,
+                  queued: txResponse.result.queued,
+                  txblob: txResponse.result.tx_blob
+                }
+      
+                // Write transaction output to CSV, only use headers on first input
+                const csvData = parseFromObjectToCsv(
+                  txOutputWriteStream,
+                  txOutputSchema,
+                  txOutput,
+                  index === 0,
+                )
+
+                log.info(`Wrote entry to ${txOutputWriteStream.path as string}.`)
+                log.debug(black(`  -> ${csvData}`))
+                log.info(green('Transaction successfully submitted and recorded.'))
+
+                //check transaction fee!!!!
+                if(txResponse?.result?.tx_json?.Fee) {
+                  let fee = parseInt(txResponse.result.tx_json.Fee)
+
+                  if(fee > 10000) {
+                    //check if it is the first time. if yes -> sleep for 2 minutes and continue
+                    if(!feeExceededOnce) {
+                      //sleep for a minute and continue
+                      await sleep(60000);
+                      feeExceededOnce = true;
+                    } else {
+                      log.info(red('The fee for the last two transactions exceeded the limit of 10000 drops! -> ' + fee))
+                      log.info(red('Stopping the execution!!'))
+                      break;
+                    }
+                  } else {
+                    feeExceededOnce = false;
+                  }
+                }
+              } else {
+
+                log.info(red(`Transaction possibly failed to: ${txInput.address}`));
+                if(txResponse)
+                  console.log(JSON.stringify(txResponse));
+
+                fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+
+                if(txResponse && txResponse.result && txResponse.result.engine_result === 'tefPAST_SEQ') {
+                  //Break hard on sequence error!
+                  break;
+                }
+              }
+            } else {
+
+              log.info(red(`Transaction possibly failed to: ${txInput.address}`));
+              if(txResponse)
+                console.log(JSON.stringify(txResponse));
+
+              fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", TRANSACION FAILED, " + JSON.stringify(txResponse)+"\n")
+            }
           }
         } else {
           log.info('')
@@ -410,6 +541,13 @@ export async function reliableBatchPayment(
   }
 
   fs.writeFileSync(config.ALREADY_SENT_ACCOUNT_FILE, JSON.stringify(newDistributedAccounts));
+
+  let time = Date.now();
+
+  fs.renameSync(config.FAILED_TRX_FILE, config.FAILED_TRX_FILE + "_" + time)
+  fs.renameSync(config.OUTPUT_CSV_FILE, config.OUTPUT_CSV_FILE + "_" + time)
+  fs.copyFileSync(config.INPUT_CSV_FILE, config.INPUT_CSV_FILE + "_" + time)
+
 
   return [success, skip];
 }
