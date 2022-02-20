@@ -18,7 +18,8 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '123456789';
+export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
 
 //issuer properties
 export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
@@ -34,4 +35,4 @@ export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || ''
 
 export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
 export const ROUND_UP = process.env.ROUND_UP || 'false';
-export const ROUND_TO_NUMBER = process.env.ROUND_TO_NUMBER || ''
+export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001'
