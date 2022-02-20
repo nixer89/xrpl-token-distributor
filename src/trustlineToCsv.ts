@@ -103,7 +103,7 @@ async function readAndConvertToCsv() {
         //let tokenBalance = parseInt(distributorBalances[0].value);
 
         let roundUp = config.ROUND_UP === 'true';
-        let roundToNumber = parseInt(config.ROUND_TO_NUMBER);
+        let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
 
         trustlines.forEach(line => {
             if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
@@ -116,9 +116,9 @@ async function readAndConvertToCsv() {
                     let amountToSend = null;
                     
                     if(roundUp)
-                        amountToSend = Math.ceil(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToNumber) / roundToNumber;
+                        amountToSend = Math.ceil(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
                     else
-                        amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToNumber) / roundToNumber;
+                        amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
 
                     newTrustlineAccounts.push({account: line.account, amount: amountToSend});
                 }
@@ -139,7 +139,7 @@ async function readAndConvertToCsv() {
             }
         });
 
-        console.log("total amount of tokens to be sent: " + ((total * roundToNumber) / roundToNumber));
+        console.log("total amount of tokens to be sent: " + ((total * roundToSmallesUnit) / roundToSmallesUnit));
 
         console.log("To trustlines: " + trustlinesToBeSend)
 
