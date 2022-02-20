@@ -318,7 +318,7 @@ export async function reliableBatchPayment(
 
         if(trustlineExists) {
 
-          await sleep(1000);
+          await sleep(config.TRANSACTION_TIMEOUT);
 
           // Submit payment
           log.info('')

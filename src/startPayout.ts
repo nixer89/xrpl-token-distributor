@@ -10,9 +10,12 @@ import * as config from './lib/config';
 import * as fs from 'fs';
 
 async function startPayout() {
-    if(fs.existsSync(config.INPUT_CSV_FILE)) {
+    if(fs.existsSync(config.INPUT_CSV_FILE) && config.TRANSACTION_TIMEOUT >= 500) {
         await payout();
     } else
+    if(config.TRANSACTION_TIMEOUT < 500)
+        console.log("Transaction timeout too low. Please choose a value greater or equal 500 ms");
+    else
         console.log("Input CSV file: " + config.INPUT_CSV_FILE + " does not exist!");
 }
 
