@@ -121,7 +121,7 @@ export function generateWallet(
       },
     }
 
-    if(config.FIXED_TRANSACTION_FEE) {
+    if(config.FIXED_TRANSACTION_FEE && config.FIXED_TRANSACTION_FEE.trim().length > 0) {
       payment.Fee = config.FIXED_TRANSACTION_FEE;
     }
 
