@@ -118,7 +118,11 @@ export function generateWallet(
         currency: config.CURRENCY_CODE,
         issuer: config.ISSUER_ADDRESS,
         value: receiverAccount.amount.toString()
-      }
+      },
+    }
+
+    if(config.FIXED_TRANSACTION_FEE) {
+      payment.Fee = config.FIXED_TRANSACTION_FEE;
     }
 
     // Submit payment
