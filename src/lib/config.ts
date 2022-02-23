@@ -20,6 +20,7 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
 export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '123456789';
 export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
+export const FIXED_TRANSACTION_FEE = process.env.XRP_LEDGER_VERSION || '2500';
 
 //issuer properties
 export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';

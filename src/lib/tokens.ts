@@ -119,7 +119,10 @@ export function generateWallet(
         issuer: config.ISSUER_ADDRESS_SENDING,
         value: receiverAccount.amount.toString()
       },
-      Fee: "2500"
+    }
+
+    if(config.FIXED_TRANSACTION_FEE && config.FIXED_TRANSACTION_FEE.trim().length > 0) {
+      payment.Fee = config.FIXED_TRANSACTION_FEE;
     }
 
     // Submit payment
