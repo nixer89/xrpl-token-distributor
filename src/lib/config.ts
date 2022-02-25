@@ -18,22 +18,22 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '123456789';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
 export const FIXED_TRANSACTION_FEE = process.env.XRP_LEDGER_VERSION || '2500';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
-export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
+export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rDpdyF9LtYpwRdHZs8sghaPscE8rH9sgfs';
+export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '4C4F564500000000000000000000000000000000';
+export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '50000';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'rMYeffeDZeJtMWDM7StFj3hQxpB5KL6hfa';
+export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '556E696F6E436F696E0000000000000000000000';
 
-export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
+export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'r9Sc5eCeLETKoKYV7YzxyPfjyXG9PDCTFi';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
-export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
+export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '0.2';
 export const ROUND_UP = process.env.ROUND_UP || 'false';
 export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001'
