@@ -18,7 +18,7 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '69644978';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '69815382';
 export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
 
 //issuer properties
@@ -26,8 +26,8 @@ export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rMJAXYs
 export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || 'XDX';
 export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '0';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'rQa3LW1Au4GxGHzDBkCMKuPcn326w4Wcj2';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || 'RDX';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'roBYiFtZsTRpWEUw6TtpUCwZCfjcQeRBg';
+export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '5853515541440000000000000000000000000000';
 
 export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'rDLPDG8pNpXsk4xFxHApHd83W7nKUAvfzf';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
