@@ -23,8 +23,8 @@
   "scripts": {
     "build": "tsc --project .",
     "buildWatch": "rm -rf build && tsc --watch --project .",
-    "trustlines": "node ./build/trustlineToCsv.js",
-    "payout": "node ./build/startPayout.js"
+    "trustlines": "node ./build/apps/trustlineToCsv.js",
+    "payout": "node ./build/apps/startPayout.js"
   },
   "dependencies": {
     "chalk": "^4.1.2",

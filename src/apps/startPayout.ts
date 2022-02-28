@@ -5,8 +5,8 @@
  */
 
 //run as nodejs
-import payout from './apps/payout';
-import * as config from './lib/config';
+import payout from './payout';
+import * as config from '../config';
 import * as fs from 'fs';
 
 async function startPayout() {

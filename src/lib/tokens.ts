@@ -12,7 +12,7 @@ import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
 
-import  * as config from './config'
+import  * as config from '../config'
 import { parseFromObjectToCsv } from './io'
 import log, { green, black, red } from './log'
 import { TxInput, TxOutput } from './schema'
