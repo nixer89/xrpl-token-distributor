@@ -104,13 +104,6 @@ async function readAndConvertToCsv() {
                             else
                                 amountToSend = Math.floor(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
         
-
-                            console.log("add: " + lineSend.account);
-                            console.log("LOVE: " + trustlineBalanceCheck);
-                            console.log("UC: " + trustlineBalanceSend);
-                            console.log("SEND: " + amountToSend);
-                            console.log("LINE CHECK: " + JSON.stringify(lineCheck));
-                            console.log("LINE SEND: " + JSON.stringify(lineSend));
                             newTrustlineAccounts.push({account: lineSend.account, amount: amountToSend});
                         
                         }                            
