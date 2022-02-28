@@ -12,8 +12,8 @@ export enum WSSEndpoint {
 
 //file properties
 export const INPUT_CSV_FILE = process.env.INPUT_CSV_FILE || './input.csv';
-export const OUTPUT_CSV_FILE = process.env.OUTPUT_CSV_FILE || './test/output.csv';
-export const FAILED_TRX_FILE = process.env.FAILED_TRX_FILE || './test/failed.csv';
+export const OUTPUT_CSV_FILE = process.env.OUTPUT_CSV_FILE || './logs/output.csv';
+export const FAILED_TRX_FILE = process.env.FAILED_TRX_FILE || './logs/failed.csv';
 export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE || './test/alreadyDistributedAccounts'
 
 //xrpl network
