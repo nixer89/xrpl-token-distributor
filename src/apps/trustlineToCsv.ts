@@ -77,40 +77,47 @@ async function readAndConvertToCsv() {
         let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
         let minimumNumberOfTokens = parseFloat(config.MINIMUM_NUMBER_TOKENS);
+        let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
         console.log("minimumNumberOfTokens: " + minimumNumberOfTokens);
 
-        trustlinesCheck.forEach(lineCheck => {
-            if(!alreadySentToAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
+        console.log("trustlinesCheck: " + trustlinesCheck.length);
+        console.log("trustlinesSend: " + trustlinesSend.length);
+
+        console.log("generating input file. This will take a moment. please wait...")
+
+        for(let i = 0; i < trustlinesCheck.length; i++) {
+            let lineCheck = trustlinesCheck[i];
+
+            if(!alreadySentToAccounts.includes(lineCheck.account) && !blacklistedAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
+                
                 let trustlineBalanceCheck = parseFloat(lineCheck.balance);
 
                 if(trustlineBalanceCheck < 0)
                     trustlineBalanceCheck = trustlineBalanceCheck * -1;
                 
                 if(trustlineBalanceCheck > 0 && trustlineBalanceCheck >= minimumNumberOfTokens) {
-                    trustlinesSend.forEach(lineSend => {
-                        if(!alreadySentToAccounts.includes(lineSend.account) && newTrustlineAccounts.filter(info => lineSend.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineSend.account && lineSend.currency === config.CURRENCY_CODE_SENDING && lineSend.balance != "0" && lineSend.account === lineCheck.account) {
-                            
-                            let trustlineBalanceSend = parseFloat(lineSend.balance);
-            
-                            if(trustlineBalanceSend < 0)
-                                trustlineBalanceSend = trustlineBalanceSend * -1;
-            
-                            let amountToSend = null;
+                    let lineSend = trustlinesSend.filter(sendAccount => lineCheck.account == sendAccount.account)[0];
+
+                    if(lineSend && !alreadySentToAccounts.includes(lineSend.account) && newTrustlineAccounts.filter(info => lineSend.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineSend.account && lineSend.currency === config.CURRENCY_CODE_SENDING && lineSend.balance != "0" && lineSend.account === lineCheck.account) {
+                        let trustlineBalanceSend = parseFloat(lineSend.balance);
         
-                            //check other tokens's trustlines
-                            if(roundUp)
-                                amountToSend = Math.ceil(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
-                            else
-                                amountToSend = Math.floor(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
+                        if(trustlineBalanceSend < 0)
+                            trustlineBalanceSend = trustlineBalanceSend * -1;
         
-                            newTrustlineAccounts.push({account: lineSend.account, amount: amountToSend});
-                        
-                        }                            
-                    });
+                        let amountToSend = null;
+    
+                        //check other tokens's trustlines
+                        if(roundUp)
+                            amountToSend = Math.ceil(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
+                        else
+                            amountToSend = Math.floor(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
+    
+                        newTrustlineAccounts.push({account: lineSend.account, amount: amountToSend});
+                    }
                 }
             }
-        });
+        }
 
         console.log("trustlines: " + newTrustlineAccounts.length);
         
