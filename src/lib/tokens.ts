@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet, xrpToDrops } from 'xrpl'
+import { AccountInfoRequest, AccountInfoResponse, AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet, xrpToDrops } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -90,6 +90,44 @@ export function generateWallet(
   // object that is expected by XrplClient.send()
   // So we cast to the appropriate object
   return [(wallet as unknown) as Wallet, classicAddress]
+}
+
+export async function checkAccountExists(
+  xrplClient: Client,
+  receiverAccount: TxInput,
+): Promise<boolean> {
+
+  let found:boolean = false;
+
+  try {
+    log.info('')
+    log.info(
+      `Checking Account Exists ...`,
+    )
+    log.info(black(`  -> Account: ${receiverAccount.address}`))
+    
+
+    
+    let accountInfoRequest:AccountInfoRequest = {
+      command: 'account_info',
+      account: receiverAccount.address,
+      ledger_index: 'validated'
+    }
+
+    let accountInfoResponse:AccountInfoResponse = await xrplClient.request(accountInfoRequest);
+
+    //console.log(JSON.stringify(trustlineResponse));
+
+    if(accountInfoResponse?.result) {
+
+      found = parseInt(accountInfoResponse.result.account_data?.Balance) > 0;
+    }
+
+  } catch(err) {
+    found = false;
+  }
+
+  return found;
 }
 
 /**
@@ -179,9 +217,14 @@ export async function reliableBatchPayment(
     try {
       if(!successAccounts.includes(txInput.address)) {
 
+        let accountExists = false;
+        try {
+          accountExists = await checkAccountExists(xrpClient, txInput);
+        } catch(err) {
+          accountExists = false;
+        }
 
-
-        if(trustlineExists) {
+        if(accountExists) {
 
           await sleep(config.TRANSACTION_TIMEOUT);
 
@@ -375,10 +418,10 @@ export async function reliableBatchPayment(
             log.info(
               `Skipped account ${index + 1} / ${txInputs.length} ..`,
             )
-          log.info(red(`No Trust Line / Account Deleted: ${txInput.address}`));
-          log.info(red(`No tokens were sent to: ${txInput.address}`));
+          log.info(red(`Account Deleted: ${txInput.address}`));
+          log.info(red(`No XRP were sent to: ${txInput.address}`));
           skip++;
-          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
+          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", ACCOUNT DELETED\n")
         }
       } else {
         log.info(red(`Skipped account ${index + 1} / ${txInputs.length}: ${txInput.address} - already processed`));
