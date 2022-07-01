@@ -8,19 +8,9 @@ async function readAndConvertToCsv() {
         console.log("please set environment variable 'CURRENCY_CODE_CHECK' to the currency code. Currency codes longer thn 3 characters need to be set as HEX string");
         return;
     }
-
-    if(!config.CURRENCY_CODE_SENDING) {
-        console.log("please set environment variable 'CURRENCY_CODE_SENDING' to the currency code. Currency codes longer thn 3 characters need to be set as HEX string");
-        return;
-    }
     
     if(!config.ISSUER_ADDRESS_CHECK) {
         console.log("please set environment variable 'ISSUER_ADDRESS_CHECK' to define the issuer account");
-        return;
-    }
-
-    if(!config.ISSUER_ADDRESS_SENDING) {
-        console.log("please set environment variable 'ISSUER_ADDRESS_SENDING' to define the issuer account");
         return;
     }
 
@@ -39,15 +29,43 @@ async function readAndConvertToCsv() {
         return;
     }
 
-    let trustlinesCheck = await readAllTrustlines(config.ISSUER_ADDRESS_CHECK);
-
-    let trustlinesSend = await readAllTrustlines(config.ISSUER_ADDRESS_SENDING);
-
     let xrplApi = new Client('mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test);
 
     await xrplApi.connect();
 
-    if(trustlinesCheck && trustlinesCheck.length > 0 && trustlinesSend && trustlinesSend.length > 0 && xrplApi.isConnected()) {
+    //collect trustlines
+    let trustlineRequest:AccountLinesRequest = {
+        command: 'account_lines',
+        account: config.ISSUER_ADDRESS_CHECK,
+        ledger_index: ('validated' === config.XRP_LEDGER_VERSION ? config.XRP_LEDGER_VERSION : parseInt(config.XRP_LEDGER_VERSION)),
+        limit: 2000
+    }
+
+    let trustlineResponse = await xrplApi.request(trustlineRequest);
+
+    if(trustlineResponse?.result?.lines) {
+        let trustlines = trustlineResponse?.result?.lines;
+
+        let marker = trustlineResponse.result.marker
+
+        console.log("marker: " + marker);
+
+        while(marker) {
+            console.log("marker: " + marker);
+            trustlineRequest.marker = marker;
+            trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
+
+            trustlineResponse = await xrplApi.request(trustlineRequest);
+
+            marker = trustlineResponse?.result?.marker;
+
+            if(trustlineResponse?.result?.lines) {
+                trustlines = trustlines.concat(trustlineResponse.result.lines);
+            } else {
+                marker = null;
+            }
+        }
+
         //read existing sent accounts
         let alreadySentToAccounts: string[] = [];
         console.log("loading already distributed accounts from FS");
@@ -70,54 +88,35 @@ async function readAndConvertToCsv() {
 
         let newTrustlineAccounts:any[] = [];
 
-        let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, { peer: config.ISSUER_ADDRESS_SENDING });
+        let distributorBalanceInDrops = await xrplApi.getXrpBalance(config.DISTRIBUTOR_ACCOUNT);
+
+        let distributorBalanceInXRP = parseInt(distributorBalanceInDrops) / 1000000;
 
         //let tokenBalance = parseInt(distributorBalances[0].value);
 
         let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
-        let minimumNumberOfTokens = parseFloat(config.MINIMUM_NUMBER_TOKENS);
-        let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
-        console.log("minimumNumberOfTokens: " + minimumNumberOfTokens);
+        trustlines.forEach(line => {
+            if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
+                let trustlineBalance = parseFloat(line.balance);
 
-        console.log("trustlinesCheck: " + trustlinesCheck.length);
-        console.log("trustlinesSend: " + trustlinesSend.length);
+                if(trustlineBalance < 0)
+                    trustlineBalance = trustlineBalance * -1;
 
-        console.log("generating input file. This will take a moment. please wait...")
+                if(trustlineBalance > 0 && trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
+                    let amountToSend = null;
+                    
+                    if(roundUp)
+                        amountToSend = Math.ceil(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
+                    else
+                        amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
 
-        for(let i = 0; i < trustlinesCheck.length; i++) {
-            let lineCheck = trustlinesCheck[i];
-
-            if(!alreadySentToAccounts.includes(lineCheck.account) && !blacklistedAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
-                
-                let trustlineBalanceCheck = parseFloat(lineCheck.balance);
-
-                if(trustlineBalanceCheck < 0)
-                    trustlineBalanceCheck = trustlineBalanceCheck * -1;
-                
-                if(trustlineBalanceCheck > 0 && trustlineBalanceCheck >= minimumNumberOfTokens) {
-                    let lineSend = trustlinesSend.filter(sendAccount => lineCheck.account == sendAccount.account)[0];
-
-                    if(lineSend && !alreadySentToAccounts.includes(lineSend.account) && newTrustlineAccounts.filter(info => lineSend.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineSend.account && lineSend.currency === config.CURRENCY_CODE_SENDING && lineSend.balance != "0" && lineSend.account === lineCheck.account) {
-                        let trustlineBalanceSend = parseFloat(lineSend.balance);
-        
-                        if(trustlineBalanceSend < 0)
-                            trustlineBalanceSend = trustlineBalanceSend * -1;
-        
-                        let amountToSend = null;
-    
-                        //check other tokens's trustlines
-                        if(roundUp)
-                            amountToSend = Math.ceil(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
-                        else
-                            amountToSend = Math.floor(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
-    
-                        newTrustlineAccounts.push({account: lineSend.account, amount: amountToSend});
-                    }
+                    newTrustlineAccounts.push({account: line.account, amount: amountToSend});
                 }
             }
-        }
+                
+        });
 
         console.log("trustlines: " + newTrustlineAccounts.length);
         
@@ -132,17 +131,16 @@ async function readAndConvertToCsv() {
             }
         });
 
-        console.log("total amount of tokens to be sent: " + ((total * roundToSmallesUnit) / roundToSmallesUnit));
+        console.log("total amount of XRP to be sent: " + ((total * roundToSmallesUnit) / roundToSmallesUnit));
 
         console.log("To trustlines: " + trustlinesToBeSend)
 
-        console.log("DISTRIBUTOR BALANCE: " + JSON.stringify(distributorBalances));
+        console.log("DISTRIBUTOR BALANCE: " + distributorBalanceInXRP + " XRP");
 
-        for(let i = 0; i < distributorBalances.length; i++) {
-            if(distributorBalances[i].currency == config.CURRENCY_CODE_SENDING && parseFloat(distributorBalances[i].value) < total) {
+            if(distributorBalanceInXRP < total) {
                 console.log("\n\nBALANCE OF DISTRIBUTOR ACCOUNT IS NOT HIGH ENOUGH TO DISTRIBUTE ALL TOKENS!")
                 console.log("total amount of tokens to be sent: " + total);
-                console.log("distributor balance: " + distributorBalances[i].value)
+                console.log("distributor balance: " + distributorBalanceInXRP + " XRP.")
 
                 fs.rmSync(config.INPUT_CSV_FILE);
                 console.log("\n\nINPUT_CSV_FILE HAS BEEN REMOVED!\n\n")
@@ -150,62 +148,9 @@ async function readAndConvertToCsv() {
             } else {
                 console.log("INPUT FILE GENERATED")
             }       
-        }
     }
 
     process.exit(0);
-}
-
-async function readAllTrustlines(issuerAccount:string): Promise<any[]> {
-    let xrplApi = new Client('mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test);
-
-    await xrplApi.connect();
-
-    let trustlines:any[] = [];
-
-    console.log("checking: " + issuerAccount);
-
-    if(xrplApi.isConnected()) {
-        //collect trustlines
-        let trustlineRequest:AccountLinesRequest = {
-            command: 'account_lines',
-            account: issuerAccount,
-            ledger_index: ('validated' === config.XRP_LEDGER_VERSION ? config.XRP_LEDGER_VERSION : parseInt(config.XRP_LEDGER_VERSION)),
-            limit: 2000
-        }
-
-        let trustlineResponse = await xrplApi.request(trustlineRequest);
-
-        if(trustlineResponse?.result?.lines) {
-            trustlines = trustlineResponse?.result?.lines;
-
-            let marker = trustlineResponse.result.marker
-
-            console.log("marker: " + marker);
-
-            while(marker) {
-                console.log("marker: " + marker);
-                trustlineRequest.marker = marker;
-                trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
-
-                trustlineResponse = await xrplApi.request(trustlineRequest);
-
-                marker = trustlineResponse?.result?.marker;
-
-                if(trustlineResponse?.result?.lines) {
-                    trustlines = trustlines.concat(trustlineResponse.result.lines);
-                } else {
-                    marker = null;
-                }
-            }
-        }
-
-        xrplApi.disconnect();
-    } else {
-        console.log("XRPL NOT CONNECTED")
-    }
-
-    return trustlines;
 }
 
 readAndConvertToCsv();
