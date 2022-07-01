@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet, xrpToDrops } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -114,11 +114,7 @@ export function generateWallet(
       TransactionType: "Payment",
       Account: senderWallet.classicAddress,
       Destination: receiverAccount.address,
-      Amount: {
-        currency: config.CURRENCY_CODE_SENDING,
-        issuer: config.ISSUER_ADDRESS_SENDING,
-        value: receiverAccount.amount.toString()
-      },
+      Amount: xrpToDrops(receiverAccount.amount),
     }
 
     if(config.FIXED_TRANSACTION_FEE && config.FIXED_TRANSACTION_FEE.trim().length > 0) {
@@ -131,132 +127,6 @@ export function generateWallet(
     console.log(err);
     return null;
   }
-}
-
-export async function checkTrustLine(
-  xrplClient: Client,
-  receiverAccount: TxInput,
-): Promise<boolean> {
-
-  //const issuerXAddress = XrpUtils.encodeXAddress(config.ISSUER_ADDRESS, 0) as string
-  let found:boolean = false;
-
-  try {
-    log.info('')
-    log.info(
-      `Checking Trustlines ...`,
-    )
-    log.info(black(`  -> Destination: ${receiverAccount.address}`))
-    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS_SENDING}`))
-
-    let lines:Trustline[] = [];
-    
-    let trustlineRequest:AccountLinesRequest = {
-      command: 'account_lines',
-      account: receiverAccount.address,
-      peer: config.ISSUER_ADDRESS_SENDING,
-      limit: 200,
-      ledger_index: 'validated'
-    }
-
-    let trustlineResponse:AccountLinesResponse = await xrplClient.request(trustlineRequest);
-
-    //console.log(JSON.stringify(trustlineResponse));
-
-    if(trustlineResponse?.result?.lines) {
-
-      lines = lines.concat(trustlineResponse?.result?.lines);
-
-      //check for marker
-      let i = 0;
-      if(trustlineResponse.result.marker) {
-        while(trustlineResponse.result.marker && lines.length == 0) {
-          trustlineRequest.marker = trustlineResponse.result.marker;
-          trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
-
-          console.log("additional calls: " + ++i);
-
-          trustlineResponse = await xrplClient.request(trustlineRequest);
-
-          if(trustlineResponse?.result?.lines) {
-            lines = lines.concat(trustlineResponse?.result?.lines);
-          }
-        }
-      }
-    }
-
-    /**
-    if(lines.length == 0) {
-      let trustlineRequest2:AccountLinesRequest = {
-        command: 'account_lines',
-        account: config.ISSUER_ADDRESS,
-        peer: receiverAccount.address,
-        limit: 200,
-        ledger_index: 'validated'
-      }
-
-      let trustlineResponse2:AccountLinesResponse = await xrplClient.request(trustlineRequest2);
-
-      if(trustlineResponse2?.result?.lines) {
-        lines = lines.concat(trustlineResponse2.result?.lines);
-
-        //check for marker
-        if(trustlineResponse2.result.marker) {
-          while(trustlineResponse2.result.marker) {
-            trustlineRequest2.marker = trustlineResponse.result.marker;
-            trustlineRequest2.ledger_index = trustlineResponse.result.ledger_index;
-
-            trustlineResponse2 = await xrplClient.request(trustlineRequest2);
-
-            if(trustlineResponse2?.result?.lines) {
-              lines = lines.concat(trustlineResponse2?.result?.lines);
-            }
-          }
-        }
-      }
-    }
-
-    */
-
-    if(lines?.length > 0) {
-      for(let i = 0; i < lines.length; i++) {
-        //log.info("Trustline: " + JSON.stringify(lines[i]));
-
-        if(lines[i].currency === config.CURRENCY_CODE_SENDING) {
-          let usePeer:boolean = lines[i].limit === "0";
-
-          //console.log("usePeer: " + usePeer);
-
-          let limit = parseFloat(usePeer ? lines[i].limit_peer : lines[i].limit);
-          let balance = parseFloat(lines[i].balance);
-
-          //make balance positive!
-          if(balance < 0)
-            balance = balance * -1;
-
-          let minLimit = balance + receiverAccount.amount;
-
-          //console.log("limit: " + limit);
-          //console.log("balance: " + balance);
-          //console.log("minLimit: " + minLimit);
-          //console.log("amount: "+ receiverAccount.amount);
-
-          if(limit > minLimit) {
-            //console.log("limit is high enough to receive tokens!");
-            found = true;
-          } else
-            log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE_SENDING +": " + JSON.stringify(lines[i]));
-
-          break;
-        }
-      }
-    }
-  } catch(err) {
-    console.log(err)
-    found = false;
-  }
-
-  return found;
 }
 
 /**
@@ -309,15 +179,7 @@ export async function reliableBatchPayment(
     try {
       if(!successAccounts.includes(txInput.address)) {
 
-        log.info('Checking existing trustline')
 
-        let trustlineExists = false;
-        
-        try {
-          trustlineExists = await checkTrustLine(xrpClient, txInput);
-        } catch(err) {
-          trustlineExists = false;
-        }
 
         if(trustlineExists) {
 
@@ -329,11 +191,6 @@ export async function reliableBatchPayment(
             `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
           )
           log.info(black(`  -> Receiver classic address: ${txInput.address}`))
-          log.info(
-            black(
-              `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE_SENDING}.`,
-            ),
-          )
 
           const txResponse = await submitPayment(
             senderWallet,
@@ -418,11 +275,6 @@ export async function reliableBatchPayment(
                 `Submitting ${index + 1} / ${txInputs.length} payment transactions..`,
               )
               log.info(black(`  -> Receiver classic address: ${txInput.address}`))
-              log.info(
-                black(
-                  `  -> Amount: ${txInput.amount} ${config.CURRENCY_CODE_SENDING}.`,
-                ),
-              )
 
               const txResponse = await submitPayment(
                 senderWallet,
