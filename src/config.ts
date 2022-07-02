@@ -27,13 +27,13 @@ export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
 export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
 export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
 
-export const FIXED_XRP_AMOUNT_TO_SEND = process.env.FIXED_XRP_AMOUNT_TO_SEND || '';
-
-export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || 'r9Sc5eCeLETKoKYV7YzxyPfjyXG9PDCTFi';
+//distributor properties
+export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
-export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '0.2';
+//distribution properties
+export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '0.001';
 export const ROUND_UP = process.env.ROUND_UP || 'false';
 export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001'
 export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';

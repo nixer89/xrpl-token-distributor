@@ -1,6 +1,6 @@
 {
   "name": "xrpl-token-distributor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A library and command-line tool for batched, reliable payouts with XRP.",
   "homepage": "https://github.com/nixer89/xrpl-token-distributor#readme",
   "bugs": {
@@ -23,8 +23,8 @@
   "scripts": {
     "build": "tsc --project .",
     "buildWatch": "rm -rf build && tsc --watch --project .",
-    "trustlines": "node ./build/apps/trustlineToCsv.js",
-    "payout": "node ./build/apps/startPayout.js"
+    "trustlines": "tsc --project . & node ./build/apps/trustlineToCsv.js",
+    "payout": "tsc --project . & node ./build/apps/startPayout.js"
   },
   "dependencies": {
     "chalk": "^4.1.2",

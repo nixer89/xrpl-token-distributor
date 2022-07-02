@@ -88,9 +88,7 @@ async function readAndConvertToCsv() {
 
         let newTrustlineAccounts:any[] = [];
 
-        let distributorBalanceInDrops = await xrplApi.getXrpBalance(config.DISTRIBUTOR_ACCOUNT);
-
-        let distributorBalanceInXRP = parseInt(distributorBalanceInDrops) / 1000000;
+        let distributorBalanceInXRP = Number(await xrplApi.getXrpBalance(config.DISTRIBUTOR_ACCOUNT));
 
         //let tokenBalance = parseInt(distributorBalances[0].value);
 
@@ -98,7 +96,7 @@ async function readAndConvertToCsv() {
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
 
         trustlines.forEach(line => {
-            if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
+            if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0" && !config.EXCLUDED_ACCOUNTS.includes(line.account)) {
                 let trustlineBalance = parseFloat(line.balance);
 
                 if(trustlineBalance < 0)
@@ -138,8 +136,8 @@ async function readAndConvertToCsv() {
         console.log("DISTRIBUTOR BALANCE: " + distributorBalanceInXRP + " XRP");
 
             if(distributorBalanceInXRP < total) {
-                console.log("\n\nBALANCE OF DISTRIBUTOR ACCOUNT IS NOT HIGH ENOUGH TO DISTRIBUTE ALL TOKENS!")
-                console.log("total amount of tokens to be sent: " + total);
+                console.log("\n\nBALANCE OF DISTRIBUTOR ACCOUNT IS NOT HIGH ENOUGH TO DISTRIBUTE ALL XRP!")
+                console.log("total amount of XRP to be sent: " + total + " XRP");
                 console.log("distributor balance: " + distributorBalanceInXRP + " XRP.")
 
                 fs.rmSync(config.INPUT_CSV_FILE);
