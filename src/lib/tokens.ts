@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { AccountLinesRequest, AccountLinesResponse, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -185,39 +185,6 @@ export async function checkTrustLine(
       }
     }
 
-    /**
-    if(lines.length == 0) {
-      let trustlineRequest2:AccountLinesRequest = {
-        command: 'account_lines',
-        account: config.ISSUER_ADDRESS,
-        peer: receiverAccount.address,
-        limit: 200,
-        ledger_index: 'validated'
-      }
-
-      let trustlineResponse2:AccountLinesResponse = await xrplClient.request(trustlineRequest2);
-
-      if(trustlineResponse2?.result?.lines) {
-        lines = lines.concat(trustlineResponse2.result?.lines);
-
-        //check for marker
-        if(trustlineResponse2.result.marker) {
-          while(trustlineResponse2.result.marker) {
-            trustlineRequest2.marker = trustlineResponse.result.marker;
-            trustlineRequest2.ledger_index = trustlineResponse.result.ledger_index;
-
-            trustlineResponse2 = await xrplClient.request(trustlineRequest2);
-
-            if(trustlineResponse2?.result?.lines) {
-              lines = lines.concat(trustlineResponse2?.result?.lines);
-            }
-          }
-        }
-      }
-    }
-
-    */
-
     if(lines?.length > 0) {
       for(let i = 0; i < lines.length; i++) {
         //log.info("Trustline: " + JSON.stringify(lines[i]));
@@ -248,6 +215,90 @@ export async function checkTrustLine(
             log.warn("Trustline limit too low to send " + receiverAccount.amount + " "+ config.CURRENCY_CODE_SENDING +": " + JSON.stringify(lines[i]));
 
           break;
+        }
+      }
+    }
+  } catch(err) {
+    console.log(err)
+    found = false;
+  }
+
+  return found;
+}
+
+export async function checkOffers(
+  xrplClient: Client,
+  receiverAccount: TxInput,
+): Promise<boolean> {
+
+  //const issuerXAddress = XrpUtils.encodeXAddress(config.ISSUER_ADDRESS, 0) as string
+  let found:boolean = false;
+
+  try {
+    log.info('')
+    log.info(
+      `Checking Offers ...`,
+    )
+    log.info(black(`  -> Destination: ${receiverAccount.address}`))
+    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS_SENDING}`))
+
+    let offers:AccountOffer[] = [];
+    
+    let accountOfferRequest:AccountOffersRequest = {
+      command: 'account_offers',
+      account: receiverAccount.address,
+      limit: 200,
+      ledger_index: 'validated'
+    }
+
+    let accountOfferResponse:AccountOffersResponse = await xrplClient.request(accountOfferRequest);
+
+    //console.log(JSON.stringify(trustlineResponse));
+
+    if(accountOfferResponse?.result?.offers) {
+
+      offers = offers.concat(accountOfferResponse?.result?.offers);
+
+      if(offers?.length > 0) {
+        for(let i = 0; i < offers.length; i++) {
+          //log.info("Trustline: " + JSON.stringify(lines[i]));
+  
+          let takerGets = offers[i].taker_gets;
+  
+          if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_CHECK && takerGets.issuer === config.ISSUER_ADDRESS_CHECK) {
+            found = true;
+            break;
+          }
+        }
+      }
+
+      //check for marker
+      let i = 0;
+      if(accountOfferResponse.result.marker) {
+        while(accountOfferResponse.result.marker) {
+          accountOfferRequest.marker = accountOfferResponse.result.marker;
+          accountOfferRequest.ledger_index = accountOfferResponse.result.ledger_index;
+
+          console.log("additional calls: " + ++i);
+
+          accountOfferResponse = await xrplClient.request(accountOfferRequest);
+
+          if(accountOfferResponse?.result?.offers) {
+            offers = offers.concat(accountOfferResponse?.result?.offers);
+            
+            if(offers?.length > 0) {
+              for(let i = 0; i < offers.length; i++) {
+                //log.info("Trustline: " + JSON.stringify(lines[i]));
+        
+                let takerGets = offers[i].taker_gets;
+        
+                if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_CHECK && takerGets.issuer === config.ISSUER_ADDRESS_CHECK) {
+                  found = true;
+                  break;
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -312,14 +363,29 @@ export async function reliableBatchPayment(
         log.info('Checking existing trustline')
 
         let trustlineExists = false;
+        let offersExist = false;
         
         try {
-          trustlineExists = await checkTrustLine(xrpClient, txInput);
+          let promises:any[] = [];
+          promises.push(checkTrustLine(xrpClient, txInput))
+          
+
+          if(config.CHECK_FOR_OFFERS) {
+            promises.push(checkOffers(xrpClient, txInput));
+          }
+
+          promises = await Promise.all(promises);
+
+          trustlineExists = promises[0];
+
+          if(config.CHECK_FOR_OFFERS) [
+            offersExist = promises[1]
+          ]
         } catch(err) {
           trustlineExists = false;
         }
 
-        if(trustlineExists) {
+        if(trustlineExists && !offersExist) {
 
           await sleep(config.TRANSACTION_TIMEOUT);
 
@@ -523,10 +589,17 @@ export async function reliableBatchPayment(
             log.info(
               `Skipped account ${index + 1} / ${txInputs.length} ..`,
             )
-          log.info(red(`No Trust Line / Account Deleted: ${txInput.address}`));
+
           log.info(red(`No tokens were sent to: ${txInput.address}`));
           skip++;
-          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
+
+          if(!trustlineExists) {
+            log.info(red(`No Trust Line / Account Deleted: ${txInput.address}`));
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", NO TRUSTLINE / LOW LIMIT\n")
+          } else if(offersExist) {
+            log.info(red(`Existing Offers Detected!: ${txInput.address}`));
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", EXISTING SELL OFFERS DETECTED\n")
+          }
         }
       } else {
         log.info(red(`Skipped account ${index + 1} / ${txInputs.length}: ${txInput.address} - already processed`));
