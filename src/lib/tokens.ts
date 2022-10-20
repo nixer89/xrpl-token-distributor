@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountInfoRequest, AccountInfoResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet, xrpToDrops } from 'xrpl'
+import { AccountInfoRequest, AccountInfoResponse, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet, xrpToDrops } from 'xrpl'
 
 import * as z from 'zod'
 
@@ -129,6 +129,90 @@ export async function checkAccountExists(
   return found;
 }
 
+export async function checkOffers(
+  xrplClient: Client,
+  receiverAccount: TxInput,
+): Promise<boolean> {
+
+  //const issuerXAddress = XrpUtils.encodeXAddress(config.ISSUER_ADDRESS, 0) as string
+  let found:boolean = false;
+
+  try {
+    log.info('')
+    log.info(
+      `Checking Offers ...`,
+    )
+    log.info(black(`  -> Destination: ${receiverAccount.address}`))
+    log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS_CHECK}`))
+
+    let offers:AccountOffer[] = [];
+    
+    let accountOfferRequest:AccountOffersRequest = {
+      command: 'account_offers',
+      account: receiverAccount.address,
+      limit: 200,
+      ledger_index: 'validated'
+    }
+
+    let accountOfferResponse:AccountOffersResponse = await xrplClient.request(accountOfferRequest);
+
+    //console.log(JSON.stringify(trustlineResponse));
+
+    if(accountOfferResponse?.result?.offers) {
+
+      offers = offers.concat(accountOfferResponse?.result?.offers);
+
+      if(offers?.length > 0) {
+        for(let i = 0; i < offers.length; i++) {
+          //log.info("Trustline: " + JSON.stringify(lines[i]));
+  
+          let takerGets = offers[i].taker_gets;
+  
+          if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_CHECK && takerGets.issuer === config.ISSUER_ADDRESS_CHECK) {
+            found = true;
+            break;
+          }
+        }
+      }
+
+      //check for marker
+      let i = 0;
+      if(accountOfferResponse.result.marker) {
+        while(accountOfferResponse.result.marker) {
+          accountOfferRequest.marker = accountOfferResponse.result.marker;
+          accountOfferRequest.ledger_index = accountOfferResponse.result.ledger_index;
+
+          console.log("additional calls: " + ++i);
+
+          accountOfferResponse = await xrplClient.request(accountOfferRequest);
+
+          if(accountOfferResponse?.result?.offers) {
+            offers = offers.concat(accountOfferResponse?.result?.offers);
+            
+            if(offers?.length > 0) {
+              for(let i = 0; i < offers.length; i++) {
+                //log.info("Trustline: " + JSON.stringify(lines[i]));
+        
+                let takerGets = offers[i].taker_gets;
+        
+                if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_CHECK && takerGets.issuer === config.ISSUER_ADDRESS_CHECK) {
+                  found = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch(err) {
+    console.log(err)
+    found = false;
+  }
+
+  return found;
+}
+
 /**
  * Submit an XRP payment transaction to the ledger.
  *
@@ -217,13 +301,28 @@ export async function reliableBatchPayment(
       if(!successAccounts.includes(txInput.address)) {
 
         let accountExists = false;
+        let offersExist = false;
         try {
-          accountExists = await checkAccountExists(xrpClient, txInput);
+          let promises:any[] = [];
+          promises.push(checkAccountExists(xrpClient, txInput))
+          
+
+          if(config.CHECK_FOR_OFFERS) {
+            promises.push(checkOffers(xrpClient, txInput));
+          }
+
+          promises = await Promise.all(promises);
+
+          accountExists = promises[0];
+
+          if(config.CHECK_FOR_OFFERS) [
+            offersExist = promises[1]
+          ]
         } catch(err) {
           accountExists = false;
         }
 
-        if(accountExists) {
+        if(accountExists && !offersExist) {
 
           await sleep(config.TRANSACTION_TIMEOUT);
 
@@ -416,11 +515,17 @@ export async function reliableBatchPayment(
           log.info('')
             log.info(
               `Skipped account ${index + 1} / ${txInputs.length} ..`,
-            )
-          log.info(red(`Account Deleted: ${txInput.address}`));
+            )          
           log.info(red(`No XRP were sent to: ${txInput.address}`));
           skip++;
-          fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", ACCOUNT DELETED\n")
+
+          if(!accountExists) {
+            log.info(red(`Account Deleted: ${txInput.address}`));
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", ACCOUNT DELETED\n")
+          } else if(offersExist) {
+            log.info(red(`Existing Offers Detected!: ${txInput.address}`));
+            fs.appendFileSync(config.FAILED_TRX_FILE, txInput.address + ", EXISTING SELL OFFERS DETECTED\n")
+          }
         }
       } else {
         log.info(red(`Skipped account ${index + 1} / ${txInputs.length}: ${txInput.address} - already processed`));
