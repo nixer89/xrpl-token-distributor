@@ -18,17 +18,17 @@ export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE |
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '123456789';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
-export const FIXED_TRANSACTION_FEE = process.env.XRP_LEDGER_VERSION || '2500';
+export const FIXED_TRANSACTION_FEE = process.env.FIXED_TRANSACTION_FEE || '2500';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
+export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rwCsCz93A1svS6Yv8hFqUeKLdTLhBpvqGD';
+export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '4D494E5400000000000000000000000000000000';
 export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'rwCsCz93A1svS6Yv8hFqUeKLdTLhBpvqGD';
+export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '4D41474943000000000000000000000000000000';
 
 export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
