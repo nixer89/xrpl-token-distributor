@@ -1,6 +1,6 @@
 import { Client, AccountLinesRequest } from 'xrpl';
 import * as fs  from 'fs';
-import * as config from './lib/config'
+import * as config from './config'
 
 async function readAndConvertToCsv() {
 

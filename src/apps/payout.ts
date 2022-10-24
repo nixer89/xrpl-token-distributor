@@ -7,7 +7,7 @@
 import fs from 'fs';
 import { Account } from 'xrpl-secret-numbers';
 import { ZodError } from 'zod';
-import * as config from '../lib/config';
+import * as config from '../config';
 import { parseFromCsvToArray } from '../lib/io';
 import log, { green, black, red } from '../lib/log';
 import {
