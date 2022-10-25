@@ -269,6 +269,11 @@ export async function checkOffers(
             found = true;
             break;
           }
+
+          if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_SENDING && takerGets.issuer === config.ISSUER_ADDRESS_SENDING) {
+            found = true;
+            break;
+          }
         }
       }
 
@@ -293,6 +298,11 @@ export async function checkOffers(
                 let takerGets = offers[i].taker_gets;
         
                 if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_CHECK && takerGets.issuer === config.ISSUER_ADDRESS_CHECK) {
+                  found = true;
+                  break;
+                }
+
+                if(typeof(takerGets) === 'object' && takerGets.currency === config.CURRENCY_CODE_SENDING && takerGets.issuer === config.ISSUER_ADDRESS_SENDING) {
                   found = true;
                   break;
                 }
