@@ -37,4 +37,7 @@ export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || ''
 export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
 export const ROUND_UP = process.env.ROUND_UP || 'false';
 export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001';
-export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || false;
+
+export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';
+
+export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || true;
