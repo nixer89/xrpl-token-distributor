@@ -39,3 +39,5 @@ export const ROUND_UP = process.env.ROUND_UP || 'false';
 export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001'
 
 export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';
+
+export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || false;
