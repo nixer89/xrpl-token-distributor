@@ -29,7 +29,7 @@ async function readAndConvertToCsv() {
         return;
     }
 
-    if(!config.DISTRIBUTION_RATIO) {
+    if(!config.DISTRIBUTION_RATIO || config.DISTRIBUTION_RATIO.trim().length == 0) {
         console.log("please set environment variable 'DISTRIBUTION_RATIO' to define the amount each trustline will receive");
         return;
     }
