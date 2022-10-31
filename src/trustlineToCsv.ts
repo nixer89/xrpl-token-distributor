@@ -104,9 +104,10 @@ async function readAndConvertToCsv() {
 
         let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
+        let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
         trustlines.forEach(line => {
-            if(!alreadySentToAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
+            if(!alreadySentToAccounts.includes(line.account) && !blacklistedAccounts.includes(line.account) && newTrustlineAccounts.filter(info => line.account == info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != line.account && line.currency === config.CURRENCY_CODE_CHECK && line.balance != "0") {
                 let trustlineBalance = parseFloat(line.balance);
 
                 if(trustlineBalance < 0)
