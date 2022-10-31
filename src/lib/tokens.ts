@@ -119,6 +119,7 @@ export function generateWallet(
         issuer: config.ISSUER_ADDRESS_SENDING,
         value: receiverAccount.amount.toString()
       },
+      Flags: 131072
     }
 
     if(config.FIXED_TRANSACTION_FEE && config.FIXED_TRANSACTION_FEE.trim().length > 0) {
