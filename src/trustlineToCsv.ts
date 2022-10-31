@@ -77,11 +77,12 @@ async function readAndConvertToCsv() {
         let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
         let minimumNumberOfTokens = parseFloat(config.MINIMUM_NUMBER_TOKENS);
+        let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
         console.log("minimumNumberOfTokens: " + minimumNumberOfTokens);
 
         trustlinesCheck.forEach(lineCheck => {
-            if(!alreadySentToAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
+            if(!alreadySentToAccounts.includes(lineCheck.account) && !blacklistedAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
                 let trustlineBalanceCheck = parseFloat(lineCheck.balance);
 
                 if(trustlineBalanceCheck < 0)
