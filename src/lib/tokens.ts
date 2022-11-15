@@ -170,7 +170,7 @@ export async function checkTrustLine(
       //check for marker
       let i = 0;
       if(trustlineResponse.result.marker) {
-        while(trustlineResponse.result.marker && lines.length == 0) {
+        while(trustlineResponse.result.marker) {
           trustlineRequest.marker = trustlineResponse.result.marker;
           trustlineRequest.ledger_index = trustlineResponse.result.ledger_index;
 
