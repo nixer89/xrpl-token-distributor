@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountLinesRequest, AccountLinesResponse, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, SubmitResponse, Wallet } from 'xrpl'
+import { AccountInfoRequest, AccountLinesRequest, AccountLinesResponse, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, PaymentFlags, SubmitResponse, Wallet } from 'xrpl'
 import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
 
 import * as z from 'zod'
@@ -105,7 +105,8 @@ export function generateWallet(
  export async function submitPayment(
   senderWallet: Wallet,
   xrplClient: Client,
-  receiverAccount: TxInput
+  receiverAccount: TxInput,
+  hasTransferFee: boolean
 ): Promise<SubmitResponse | null> {
 
   try {
@@ -119,6 +120,10 @@ export function generateWallet(
         issuer: config.ISSUER_ADDRESS_SENDING,
         value: receiverAccount.amount.toString()
       },
+    }
+
+    if(hasTransferFee) {
+      payment.Flags = PaymentFlags.tfPartialPayment;
     }
 
     if(config.FIXED_TRANSACTION_FEE && config.FIXED_TRANSACTION_FEE.trim().length > 0) {
@@ -343,21 +348,19 @@ export async function reliableBatchPayment(
 
   fs.writeFileSync(config.FAILED_TRX_FILE, "address, reason, txhash\n");
 
-  /**
+  
   let accountInfoRequest:AccountInfoRequest = {
     command: 'account_info',
-    account: senderWallet.classicAddress,
+    account: config.ISSUER_ADDRESS_SENDING,
   }
-
   
   let accountInfoResponse = await xrpClient.request(accountInfoRequest);
 
-  let sequence = null;
+  let hasTransferFee = false;
 
-  if(accountInfoResponse?.result?.account_data?.Sequence)
-    sequence = accountInfoResponse.result.account_data.Sequence
-
-  **/
+  if(accountInfoResponse?.result?.account_data?.TransferRate && accountInfoResponse?.result?.account_data?.TransferRate > 0) {
+    hasTransferFee = true;
+  }
   
   for (const [index, txInput] of txInputs.entries()) {
 
@@ -408,7 +411,8 @@ export async function reliableBatchPayment(
           const txResponse = await submitPayment(
             senderWallet,
             xrpClient,
-            txInput
+            txInput,
+            hasTransferFee
           )
 
           if(txResponse && txResponse.result && txResponse.result.engine_result) {
@@ -497,7 +501,8 @@ export async function reliableBatchPayment(
               const txResponse = await submitPayment(
                 senderWallet,
                 xrpClient,
-                txInput
+                txInput,
+                hasTransferFee
               )
 
               if(txResponse && txResponse.result && txResponse.result.engine_result) {
