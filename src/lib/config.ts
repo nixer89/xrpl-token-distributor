@@ -32,3 +32,10 @@ export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
 export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';
+
+export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || true;
+
+export const MEMO_TYPE = process.env.MEMO_TYPE || '';
+export const MEMO_DATA = process.env.MEMO_DATA || '';
+
+export const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '';
