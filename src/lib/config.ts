@@ -33,7 +33,7 @@ export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || ''
 
 export const EXCLUDED_ACCOUNTS = process.env.EXCLUDED_ACCOUNTS || '';
 
-export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || true;
+export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || false;
 
 export const MEMO_TYPE = process.env.MEMO_TYPE || '';
 export const MEMO_DATA = process.env.MEMO_DATA || '';

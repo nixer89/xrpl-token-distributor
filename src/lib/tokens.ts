@@ -130,6 +130,10 @@ export function generateWallet(
       payment.Fee = config.FIXED_TRANSACTION_FEE;
     }
 
+    if(config.MEMO_DATA && config.MEMO_DATA.trim().length > 0 && config.MEMO_TYPE && config.MEMO_TYPE.trim().length > 0) {
+      payment.Memos = [{Memo: {MemoType: Buffer.from(config.MEMO_TYPE, 'utf8').toString('hex').toUpperCase(), MemoData: Buffer.from(config.MEMO_DATA, 'utf8').toString('hex').toUpperCase()}}]
+    }
+
     // Submit payment
     return xrplClient.submit(payment, { wallet: senderWallet});
   } catch(err) {
