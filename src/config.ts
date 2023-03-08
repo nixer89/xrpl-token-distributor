@@ -44,3 +44,5 @@ export const CHECK_FOR_OFFERS = process.env.CHECK_FOR_OFFERS === "true" || true;
 
 export const MEMO_TYPE = process.env.MEMO_TYPE || '';
 export const MEMO_DATA = process.env.MEMO_DATA || '';
+
+export const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '';
