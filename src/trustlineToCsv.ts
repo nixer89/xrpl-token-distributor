@@ -29,8 +29,8 @@ async function readAndConvertToCsv() {
         return;
     }
 
-    if(!config.DISTRIBUTION_RATIO) {
-        console.log("please set environment variable 'DISTRIBUTION_RATIO' to define the amount each trustline will receive");
+    if(!config.FIXED_AMOUNT_TO_SEND) {
+        console.log("please set environment variable 'FIXED_AMOUNT_TO_SEND' to define the amount each trustline will receive");
         return;
     }
 
@@ -102,7 +102,6 @@ async function readAndConvertToCsv() {
 
         //let tokenBalance = parseInt(distributorBalances[0].value);
 
-        let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
         let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
@@ -114,14 +113,9 @@ async function readAndConvertToCsv() {
                     trustlineBalance = trustlineBalance * -1;
 
                 if(trustlineBalance > 0 && trustlineBalance >= parseFloat(config.MINIMUM_NUMBER_TOKENS)) {
-                    let amountToSend = null;
-                    
-                    if(roundUp)
-                        amountToSend = Math.ceil(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
-                    else
-                        amountToSend = Math.floor(trustlineBalance * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
 
-                    newTrustlineAccounts.push({account: line.account, amount: amountToSend});
+                    newTrustlineAccounts.push({account: line.account, amount: Number(config.FIXED_AMOUNT_TO_SEND)});
+
                 }
             }
                 
