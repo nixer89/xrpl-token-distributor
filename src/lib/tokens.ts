@@ -7,8 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountInfoRequest, AccountLinesRequest, AccountLinesResponse, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, PaymentFlags, SubmitResponse, Wallet } from 'xrpl'
-import { Trustline } from 'xrpl/dist/npm/models/methods/accountLines'
+import { AccountInfoRequest, AccountLinesRequest, AccountLinesResponse, AccountLinesTrustline, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, PaymentFlags, SubmitResponse, Wallet } from 'xrpl'
 
 import * as z from 'zod'
 
@@ -37,13 +36,14 @@ import { TxInput, TxOutput } from './schema'
   try {
     // `true` uses the web gRPC endpoint, which is currently more reliable
     xrpClient = new Client(wssUrl)
+    xrpClient.apiVersion = 1;
     await xrpClient.connect();
 
     if(xrpClient.isConnected())
       console.log("XRPL is connected!")
     // Get balance in XRP - network call validates that we are connected to the ledger
     try {
-      balance = parseFloat(await xrpClient.getXrpBalance(classicAddress));
+      balance = await xrpClient.getXrpBalance(classicAddress);
     } catch(err) {
       console.log(err);
     }
@@ -158,7 +158,7 @@ export async function checkTrustLine(
     log.info(black(`  -> Destination: ${receiverAccount.address}`))
     log.info(black(`  -> issuer address: ${config.ISSUER_ADDRESS_SENDING}`))
 
-    let lines:Trustline[] = [];
+    let lines:AccountLinesTrustline[] = [];
     
     let trustlineRequest:AccountLinesRequest = {
       command: 'account_lines',
@@ -351,7 +351,8 @@ export async function reliableBatchPayment(
   txOutputSchema: z.Schema<TxOutput>,
   senderWallet: Wallet,
   xrpClient: Client,
-  successAccounts: string[]
+  successAccounts: string[],
+  isDryRun?:boolean
 ): Promise<any[]> {
   let success:number = 0;
   let skip:number = 0;
@@ -509,12 +510,29 @@ export async function reliableBatchPayment(
                 ),
               )
 
-              const txResponse = await submitPayment(
-                senderWallet,
-                xrpClient,
-                txInput,
-                hasTransferFee
-              )
+              let txResponse = null;
+
+              if(isDryRun) {
+                txResponse = {
+                  result: {
+                    engine_result: 'tesSUCCESS',
+                    engine_result_code: 'tesSUCCESS',
+                    accepted: true,
+                    applied: true,
+                    broadcast: true,
+                    kept: false,
+                    queued: false,
+                    tx_blob: 'test'
+                  }
+                }
+              } else {
+                txResponse = await submitPayment(
+                  senderWallet,
+                  xrpClient,
+                  txInput,
+                  hasTransferFee
+                )
+              }
 
               if(txResponse && txResponse.result && txResponse.result.engine_result) {
                 log.info("TRANSACTION RESPONSE: " + txResponse.result.engine_result);

@@ -5,6 +5,7 @@ test/input.csv
 test/output.csv
 test/failed.csv
 test/alreadyDistributedAccounts
+distributions/
 
 *.code-workspace
 .nyc_output/

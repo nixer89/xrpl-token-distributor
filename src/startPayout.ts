@@ -20,8 +20,10 @@ function init() {
 }
 
 async function startPayout() {
+    const args = process.argv.slice(2).toString();
+    
     if(fs.existsSync(config.INPUT_CSV_FILE) && config.TRANSACTION_TIMEOUT >= 500) {
-        await payout();
+        await payout('dryrun' === args);
     } else {
         if(config.TRANSACTION_TIMEOUT < 500)
             console.log("Transaction timeout too low. Please choose a value greater or equal 500 ms");

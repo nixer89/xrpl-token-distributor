@@ -27,7 +27,7 @@ import {
  * @param override - Override prompt inputs. Useful for testing and debugging.
  * @throws Re-throws error after logging.
  */
- export default async function payout(): Promise<void> {
+ export default async function payout(isDryRun?:boolean): Promise<void> {
   try {
     // Prompt user to configure XRP payout and validate user input
     let secretNumberAccount:Account|null = config.DISTRIBUTOR_SECRET_NUMBERS && config.DISTRIBUTOR_SECRET_NUMBERS.length > 10 ? new Account(config.DISTRIBUTOR_SECRET_NUMBERS) : null;
@@ -109,7 +109,8 @@ import {
       txOutputSchema,
       wallet,
       xrpNetworkClient,
-      alreadySentToAccounts
+      alreadySentToAccounts,
+      isDryRun
     )
 
     log.info('')

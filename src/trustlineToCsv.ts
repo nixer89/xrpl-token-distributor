@@ -39,11 +39,16 @@ async function readAndConvertToCsv() {
         return;
     }
 
+    if(!fs.existsSync("./distributions")) {
+        fs.mkdirSync("./distributions");
+    }
+
     let trustlinesCheck = await readAllTrustlines(config.ISSUER_ADDRESS_CHECK);
 
     let trustlinesSend = await readAllTrustlines(config.ISSUER_ADDRESS_SENDING);
 
     let xrplApi = new Client('mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test);
+    xrplApi.apiVersion = 1;
 
     await xrplApi.connect();
 
@@ -70,16 +75,15 @@ async function readAndConvertToCsv() {
 
         let newTrustlineAccounts:any[] = [];
 
-        let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, { peer: config.ISSUER_ADDRESS_SENDING });
-
-        //let tokenBalance = parseInt(distributorBalances[0].value);
+        let distributorBalances = await xrplApi.getBalances(config.DISTRIBUTOR_ACCOUNT, {peer: config.ISSUER_ADDRESS_SENDING});
+        console.log(distributorBalances);
 
         let roundUp = config.ROUND_UP === 'true';
         let roundToSmallesUnit = Math.round(1/parseFloat(config.SMALLES_UNIT));
         let minimumNumberOfTokens = parseFloat(config.MINIMUM_NUMBER_TOKENS);
         let blacklistedAccounts:string[] = config.EXCLUDED_ACCOUNTS.split(',');
 
-        console.log("minimumNumberOfTokens: " + minimumNumberOfTokens);
+        console.log("minimumNumberOfTokens: " + minimumNumberOfTokens + " " + config.CURRENCY_CODE_CHECK);
 
         trustlinesCheck.forEach(lineCheck => {
             if(!alreadySentToAccounts.includes(lineCheck.account) && !blacklistedAccounts.includes(lineCheck.account) && newTrustlineAccounts.filter(info => lineCheck.account === info.account).length == 0 && config.DISTRIBUTOR_ACCOUNT != lineCheck.account && lineCheck.currency === config.CURRENCY_CODE_CHECK && lineCheck.balance != "0") {
@@ -105,13 +109,6 @@ async function readAndConvertToCsv() {
                             else
                                 amountToSend = Math.floor(trustlineBalanceSend * parseFloat(config.DISTRIBUTION_RATIO) * roundToSmallesUnit) / roundToSmallesUnit;
         
-
-                            console.log("add: " + lineSend.account);
-                            console.log("LOVE: " + trustlineBalanceCheck);
-                            console.log("UC: " + trustlineBalanceSend);
-                            console.log("SEND: " + amountToSend);
-                            console.log("LINE CHECK: " + JSON.stringify(lineCheck));
-                            console.log("LINE SEND: " + JSON.stringify(lineSend));
                             newTrustlineAccounts.push({account: lineSend.account, amount: amountToSend});
                         
                         }                            
@@ -124,6 +121,9 @@ async function readAndConvertToCsv() {
         
         let total = 0;
         let trustlinesToBeSend = 0;
+        if(!fs.existsSync(config.INPUT_OUTPUT_FOLDER))
+            fs.mkdirSync(config.INPUT_OUTPUT_FOLDER);
+        
         fs.writeFileSync(config.INPUT_CSV_FILE, "address,amount\n")
         newTrustlineAccounts.forEach(info => {
             if(info.amount > 0) {
@@ -133,9 +133,9 @@ async function readAndConvertToCsv() {
             }
         });
 
-        console.log("total amount of tokens to be sent: " + ((total * roundToSmallesUnit) / roundToSmallesUnit));
+        console.log("total amount of tokens to be sent: " + ((total * roundToSmallesUnit) / roundToSmallesUnit) + " " + config.CURRENCY_CODE_SENDING);
 
-        console.log("To trustlines: " + trustlinesToBeSend)
+        console.log("eligible trustlines: " + trustlinesToBeSend)
 
         console.log("DISTRIBUTOR BALANCE: " + JSON.stringify(distributorBalances));
 
@@ -159,7 +159,8 @@ async function readAndConvertToCsv() {
 
 async function readAllTrustlines(issuerAccount:string): Promise<any[]> {
     let xrplApi = new Client('mainnet' === config.XRPL_NETWORK ? config.WSSEndpoint.Main : config.WSSEndpoint.Test);
-
+    xrplApi.apiVersion = 1;
+    
     await xrplApi.connect();
 
     let trustlines:any[] = [];

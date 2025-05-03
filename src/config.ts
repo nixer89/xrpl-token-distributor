@@ -10,31 +10,34 @@ export enum WSSEndpoint {
   Test = 'wss://s.altnet.rippletest.net:51233',
 }
 
+const today = new Date();
+let folder = "./distributions/"+today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate() + "/";
 //file properties
-export const INPUT_CSV_FILE = process.env.INPUT_CSV_FILE || './input.csv';
-export const OUTPUT_CSV_FILE = process.env.OUTPUT_CSV_FILE || './test/output.csv';
-export const FAILED_TRX_FILE = process.env.FAILED_TRX_FILE || './test/failed.csv';
-export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE || './test/alreadyDistributedAccounts'
+export const INPUT_OUTPUT_FOLDER = process.env.INPUT_OUTPUT_FOLDER || folder;
+export const INPUT_CSV_FILE = process.env.INPUT_CSV_FILE || folder+'input.csv';
+export const OUTPUT_CSV_FILE = process.env.OUTPUT_CSV_FILE || folder+'output.csv';
+export const FAILED_TRX_FILE = process.env.FAILED_TRX_FILE || folder+'failed.csv';
+export const ALREADY_SENT_ACCOUNT_FILE = process.env.ALREADY_SENT_ACCOUNT_FILE || folder+'alreadyDistributedAccounts'
 
 //xrpl network
 export const XRPL_NETWORK = process.env.XRPL_NETWORK || 'mainnet';
-export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || '123456789';
+export const XRP_LEDGER_VERSION = process.env.XRP_LEDGER_VERSION || 'validated';
 export const TRANSACTION_TIMEOUT = parseInt(process.env.TRANSACTION_TIMEOUT ? process.env.TRANSACTION_TIMEOUT : '1000');
-export const FIXED_TRANSACTION_FEE = process.env.XRP_LEDGER_VERSION || '2500';
+export const FIXED_TRANSACTION_FEE = process.env.FIXED_TRANSACTION_FEE || '100';
 
 //issuer properties
-export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || '';
-export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || '';
-export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '';
+export const ISSUER_ADDRESS_CHECK = process.env.ISSUER_ADDRESS_CHECK || 'rfuzioNFTKArnU1PQD5BEF272vpbHMRoxU';
+export const CURRENCY_CODE_CHECK = process.env.CURRENCY_CODE_CHECK || 'XIO';
+export const MINIMUM_NUMBER_TOKENS = process.env.MINIMUM_NUMBER_TOKENS || '1';
 
-export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || '';
-export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || '';
+export const ISSUER_ADDRESS_SENDING = process.env.ISSUER_ADDRESS_SENDING || 'rMJAXYsbNzhwp7FfYnAsYP5ty3R9XnurPo';
+export const CURRENCY_CODE_SENDING = process.env.CURRENCY_CODE_SENDING || 'XDX';
 
 export const DISTRIBUTOR_ACCOUNT = process.env.DISTRIBUTOR_ACCOUNT || '';
 export const DISTRIBUTOR_SECRET_NUMBERS = process.env.DISTRIBUTOR_SECRET_NUMBERS || '';
 export const DISTRIBUTOR_FAMILY_SEED = process.env.DISTRIBUTOR_FAMILY_SEED || '';
 
-export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '';
+export const DISTRIBUTION_RATIO = process.env.DISTRIBUTION_RATIO || '0.0001';
 export const ROUND_UP = process.env.ROUND_UP || 'false';
 export const SMALLES_UNIT = process.env.SMALLES_UNIT || '0.000001'
 
