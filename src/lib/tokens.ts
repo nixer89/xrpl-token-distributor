@@ -7,7 +7,7 @@
 // XRP logic - connect to XRPL and reliably send a payment
 import fs from 'fs'
 
-import { AccountInfoRequest, AccountLinesRequest, AccountLinesResponse, AccountLinesTrustline, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, isValidAddress, Payment, PaymentFlags, SubmitResponse, Wallet } from 'xrpl'
+import { AccountInfoRequest, AccountLinesRequest, AccountLinesResponse, AccountLinesTrustline, AccountOffer, AccountOffersRequest, AccountOffersResponse, Client, ECDSA, isValidAddress, Payment, PaymentFlags, SubmitResponse, Wallet } from 'xrpl'
 
 import * as z from 'zod'
 
@@ -70,7 +70,7 @@ import { TxInput, TxOutput } from './schema'
 export function generateWallet(
   secret: string
 ): [Wallet, string] {
-  const wallet = Wallet.fromSecret(secret);
+  const wallet = Wallet.fromSecret(secret, {algorithm: ECDSA.secp256k1});
   // Casting allowed because we validate afterwards
 
   const classicAddress = wallet.classicAddress;
